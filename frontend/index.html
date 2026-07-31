@@ -269,35 +269,202 @@
       gap: 20px;
     }
 
-    /* Empty state */
-    .empty-state {
+    /* Empty state (Legacy, replaced by Hero) */
+    .empty-state { display: none; }
+
+    /* ── Hero Preloader ───────────────────────────────────────────────────── */
+    .hero-preloader {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 16px;
-      height: 100%;
-      text-align: center;
-      padding: 40px;
+      padding: 40px 20px 80px;
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
+      animation: fadeIn 0.5s ease-out;
     }
 
-    .empty-icon {
-      font-size: 3rem;
-      opacity: 0.3;
+    .hero-title {
+      font-size: 3.5rem;
+      font-weight: 300;
+      color: var(--text-1);
+      margin-bottom: 24px;
+      letter-spacing: -0.02em;
     }
 
-    .empty-title {
-      font-size: 1.2rem;
+    .hero-subtitle {
+      font-size: 0.65rem;
       font-weight: 600;
-      color: var(--text-2);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 60px;
+      text-align: center;
+      max-width: 500px;
+      line-height: 1.6;
     }
 
-    .empty-sub {
-      font-size: 0.85rem;
-      color: var(--text-3);
-      max-width: 380px;
-      line-height: 1.7;
+    .hero-timeline {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 550px;
+      margin-bottom: 40px;
     }
+
+    .hero-step {
+      display: flex;
+      gap: 30px;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: slideUpFade 0.6s ease-out forwards;
+    }
+
+    .hero-step:nth-child(1) { animation-delay: 0.1s; }
+    .hero-step:nth-child(2) { animation-delay: 0.3s; }
+    .hero-step:nth-child(3) { animation-delay: 0.5s; }
+    .hero-step:nth-child(4) { animation-delay: 0.7s; }
+
+    .hero-rail {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 32px;
+      flex-shrink: 0;
+    }
+
+    .hero-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--bg-3);
+      border: 2px solid var(--teal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 15px rgba(53, 201, 168, 0.3);
+      z-index: 1;
+      position: relative;
+    }
+
+    /* Inner glowing dot effect like the mockup */
+    .hero-dot::after {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: var(--teal);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--teal);
+    }
+
+    .hero-line {
+      width: 1px;
+      flex: 1;
+      background: rgba(53, 201, 168, 0.25);
+      min-height: 40px;
+    }
+
+    .hero-card {
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 22px 28px;
+      margin-bottom: 30px;
+      flex: 1;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .hero-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+      border-color: rgba(53,201,168,0.2);
+    }
+
+    .hero-card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .hero-card-check {
+      color: var(--teal);
+      font-size: 0.9rem;
+    }
+
+    .hero-card-body {
+      font-size: 0.85rem;
+      color: var(--text-2);
+      line-height: 1.6;
+    }
+
+    .hero-search-wrapper {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      max-width: 600px;
+      margin-top: 10px;
+      opacity: 0;
+      animation: slideUpFade 0.6s ease-out 1.2s forwards;
+    }
+
+    #hero-question-input {
+      flex: 1;
+      background: var(--bg-3);
+      border: 1px solid var(--border-2);
+      border-radius: var(--radius-md);
+      padding: 18px 24px;
+      color: var(--text-1);
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    #hero-question-input:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(53,201,168,0.15);
+    }
+
+    #hero-submit-btn {
+      background: linear-gradient(135deg, var(--teal), #2b9e84);
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 0 32px;
+      color: var(--bg);
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      white-space: nowrap;
+      box-shadow: 0 4px 20px rgba(53,201,168,0.3);
+    }
+
+    #hero-submit-btn:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+    
+    .hero-chips-container {
+      opacity: 0;
+      animation: slideUpFade 0.6s ease-out 1.4s forwards;
+      margin-top: 24px;
+    }
+
+    @keyframes slideUpFade {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
 
     .suggestion-chips {
       display: flex;
@@ -778,7 +945,7 @@
     <div style="display:flex; flex-direction:column; overflow:hidden;">
 
       <!-- Topbar / input -->
-      <div class="topbar">
+      <div class="topbar" id="topbar" style="display: none; opacity: 0; transition: opacity 0.4s;">
         <div class="search-wrapper">
           <input
             id="question-input"
@@ -794,19 +961,75 @@
       <!-- Content -->
       <div class="content" id="content-area">
 
-        <!-- Empty state -->
-        <div class="empty-state" id="empty-state">
-          <div class="empty-icon">🔭</div>
-          <div class="empty-title">What would you like to research?</div>
-          <div class="empty-sub">
-            Wayfinder breaks your question into sub-searches, reads live
-            sources, and synthesises a sourced answer — not a guess.
+        <!-- Hero preloader -->
+        <div class="hero-preloader" id="hero-preloader">
+          <h1 class="hero-title">Wayfinder</h1>
+          <p class="hero-subtitle">THE NEXUS OF NEURAL WEB BIOMETRICS HARNESSES BROWSE-WIDE INSIGHT.</p>
+
+          <div class="hero-timeline">
+            <!-- step 1 -->
+            <div class="hero-step">
+              <div class="hero-rail">
+                <div class="hero-dot"></div>
+                <div class="hero-line"></div>
+              </div>
+              <div class="hero-card">
+                <div class="hero-card-title"><span class="hero-card-check">✔</span> Step 1</div>
+                <div class="hero-card-body">Focused analysis generates accurate and actionable insights to enable effective decision-making and time management.</div>
+              </div>
+            </div>
+            <!-- step 2 -->
+            <div class="hero-step">
+              <div class="hero-rail">
+                <div class="hero-dot"></div>
+                <div class="hero-line"></div>
+              </div>
+              <div class="hero-card">
+                <div class="hero-card-title"><span class="hero-card-check">✔</span> QueryParsing</div>
+                <div class="hero-card-body">Now we're using competitive realized allocation to model data digestion of the original.</div>
+              </div>
+            </div>
+            <!-- step 3 -->
+            <div class="hero-step">
+              <div class="hero-rail">
+                <div class="hero-dot"></div>
+                <div class="hero-line"></div>
+              </div>
+              <div class="hero-card">
+                <div class="hero-card-title">Data Extraction</div>
+                <div class="hero-card-body">Projector analysis commentary uncovers latent company data across all tracked columns.</div>
+              </div>
+            </div>
+            <!-- step 4 -->
+            <div class="hero-step">
+              <div class="hero-rail">
+                <div class="hero-dot"></div>
+              </div>
+              <div class="hero-card" style="margin-bottom: 0;">
+                <div class="hero-card-title">Insight Compilation</div>
+                <div class="hero-card-body">Focused analysis commentary uncovers intangible complexities across all the chapters.</div>
+              </div>
+            </div>
           </div>
-          <div class="suggestion-chips">
-            <div class="chip" onclick="fillQuestion(this)">Latest developments in fusion energy 2025</div>
-            <div class="chip" onclick="fillQuestion(this)">Who founded OpenAI and when did Sam Altman return?</div>
-            <div class="chip" onclick="fillQuestion(this)">Compare Next.js 14 and Remix for a new project</div>
-            <div class="chip" onclick="fillQuestion(this)">What caused the 2023 SVB bank collapse?</div>
+
+          <div class="hero-search-wrapper">
+            <input
+              id="hero-question-input"
+              type="text"
+              placeholder="Ask a question to begin research…"
+              autocomplete="off"
+              spellcheck="true"
+            />
+            <button id="hero-submit-btn">Start Research</button>
+          </div>
+          
+          <div class="hero-chips-container">
+            <div class="suggestion-chips">
+              <div class="chip" onclick="fillQuestion(this)">Latest developments in fusion energy 2025</div>
+              <div class="chip" onclick="fillQuestion(this)">Who founded OpenAI and when did Sam Altman return?</div>
+              <div class="chip" onclick="fillQuestion(this)">Compare Next.js 14 and Remix for a new project</div>
+              <div class="chip" onclick="fillQuestion(this)">What caused the 2023 SVB bank collapse?</div>
+            </div>
           </div>
         </div>
 
@@ -835,8 +1058,11 @@
     // ── DOM refs ─────────────────────────────────────────────────────────────
     const qInput       = document.getElementById('question-input');
     const submitBtn    = document.getElementById('submit-btn');
+    const heroQInput   = document.getElementById('hero-question-input');
+    const heroSubmitBtn= document.getElementById('hero-submit-btn');
+    const topbar       = document.getElementById('topbar');
     const contentArea  = document.getElementById('content-area');
-    const emptyState   = document.getElementById('empty-state');
+    const heroPreloader= document.getElementById('hero-preloader');
     const researchArea = document.getElementById('research-area');
     const timeline     = document.getElementById('timeline');
     const answerSec    = document.getElementById('answer-section');
@@ -871,24 +1097,41 @@
 
     // ── Input helpers ─────────────────────────────────────────────────────────
     function fillQuestion(chipEl) {
-      qInput.value = chipEl.textContent;
-      qInput.focus();
+      if (heroPreloader.style.display !== 'none') {
+        heroQInput.value = chipEl.textContent;
+        heroQInput.focus();
+      } else {
+        qInput.value = chipEl.textContent;
+        qInput.focus();
+      }
     }
+
+    heroQInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        startResearch(true);
+      }
+    });
+    heroSubmitBtn.addEventListener('click', () => startResearch(true));
 
     qInput.addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        startResearch();
+        startResearch(false);
       }
     });
 
-    submitBtn.addEventListener('click', startResearch);
+    submitBtn.addEventListener('click', () => startResearch(false));
 
     // ── Reset UI ──────────────────────────────────────────────────────────────
     function resetUI() {
       timeline.innerHTML = '';
       answerSec.innerHTML = '';
-      emptyState.style.display = 'none';
+      heroPreloader.style.display = 'none';
+      topbar.style.display = 'flex';
+      // Trigger reflow for opacity transition
+      void topbar.offsetWidth;
+      topbar.style.opacity = '1';
       researchArea.style.display = 'flex';
       activeNodeEl = null;
       activeWorkPanel = null;
@@ -1167,9 +1410,12 @@
     });
 
     // ── Start research ────────────────────────────────────────────────────────
-    async function startResearch() {
-      const question = qInput.value.trim();
-      if (!question) { qInput.focus(); return; }
+    async function startResearch(isFromHero = false) {
+      const question = isFromHero ? heroQInput.value.trim() : qInput.value.trim();
+      if (!question) {
+        isFromHero ? heroQInput.focus() : qInput.focus();
+        return;
+      }
 
       // Cancel any existing stream
       if (currentEventSource) {
@@ -1180,6 +1426,12 @@
       // UI state: working
       submitBtn.disabled = true;
       qInput.disabled = true;
+      heroQInput.disabled = true;
+      heroSubmitBtn.disabled = true;
+      
+      // Update top bar input so it matches the hero if triggered from there
+      qInput.value = question;
+      
       setStatus('working', 'Researching…');
       resetUI();
 
@@ -1265,9 +1517,15 @@
 
               submitBtn.disabled = false;
               qInput.disabled = false;
+              heroQInput.disabled = false;
+              heroSubmitBtn.disabled = false;
               evtSource.close();
               currentEventSource = null;
               loadHistory();
+              
+              // Clear inputs so the user can type a new question
+              qInput.value = '';
+              qInput.focus();
               break;
             }
 
@@ -1276,6 +1534,8 @@
               setStatus('error', 'Error occurred');
               submitBtn.disabled = false;
               qInput.disabled = false;
+              heroQInput.disabled = false;
+              heroSubmitBtn.disabled = false;
               evtSource.close();
               currentEventSource = null;
               break;
@@ -1288,6 +1548,8 @@
           setStatus('error', 'Connection lost');
           submitBtn.disabled = false;
           qInput.disabled = false;
+          heroQInput.disabled = false;
+          heroSubmitBtn.disabled = false;
           evtSource.close();
           currentEventSource = null;
         };
@@ -1297,6 +1559,8 @@
         setStatus('error', 'Error');
         submitBtn.disabled = false;
         qInput.disabled = false;
+        heroQInput.disabled = false;
+        heroSubmitBtn.disabled = false;
       }
     }
 
