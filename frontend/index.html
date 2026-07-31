@@ -1203,22 +1203,42 @@
         currentEventSource = evtSource;
 
         evtSource.onmessage = (e) => {
-          const event = JSON.parse(e.data);
-          allEvents.push(event);  // keep full log for replay (§8)
+          const telemetryEvent = JSON.parse(e.data);
+          allEvents.push(telemetryEvent);  // keep full log for replay
+          
+          const payload = telemetryEvent.payload;
 
-          switch (event.type) {
-            case 'narrative':
-              createNarrativeNode(event.text);
+          switch (payload.type) {
+            case 'narrative_start':
+              createNarrativeNode(payload.narrative);
               setStatus('working', 'Thinking…');
               break;
 
-            case 'work':
-              addWorkItem(event.text);
+            case 'work_delta':
+              if (payload.detail) {
+                addWorkItem(payload.detail);
+              } else if (payload.narrative) {
+                addWorkItem(payload.narrative);
+              }
               break;
 
-            case 'answer':
-              renderAnswer(event.text, event.meta || {});
-              setStatus('done', 'Research complete');
+            case 'run_complete':
+              if (payload.final_output) {
+                // If it's the final answer
+                renderAnswer(payload.final_output, { summary: payload.summary });
+                setStatus('done', 'Research complete');
+              } else {
+                // If it's just a subagent track complete, or error exit
+                if (!payload.final_output && payload.summary.includes("error") || payload.summary.includes("aborted")) {
+                  renderError(payload.summary);
+                  setStatus('error', 'Error occurred');
+                } else {
+                  // Standard completion without answer
+                  addWorkItem(`[Summary: ${payload.summary}]`);
+                  setStatus('done', 'Complete');
+                }
+              }
+              
               submitBtn.disabled = false;
               qInput.disabled = false;
               evtSource.close();
@@ -1226,23 +1246,13 @@
               loadHistory();
               break;
 
-            case 'error':
-              renderError(event.text);
+            case 'error_event':
+              renderError(payload.error ? payload.error.message : 'Unknown error');
               setStatus('error', 'Error occurred');
               submitBtn.disabled = false;
               qInput.disabled = false;
               evtSource.close();
               currentEventSource = null;
-              break;
-
-            case 'done':
-              evtSource.close();
-              currentEventSource = null;
-              if (submitBtn.disabled) {
-                submitBtn.disabled = false;
-                qInput.disabled = false;
-                setStatus('idle', 'Ready to research');
-              }
               break;
           }
         };
