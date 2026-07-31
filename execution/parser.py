@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import BaseModel
 from core.provider import LLMResponse
 from core.tools import ToolCall
-from core.skills import SkillCall if 'SkillCall' in globals() else None
+
 
 class ActionType(str, Enum):
     TOOL_CALL = "tool_call"
