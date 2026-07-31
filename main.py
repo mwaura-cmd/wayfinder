@@ -104,7 +104,7 @@ async def start_research(req: ResearchRequest):
                 source_type="system",
                 payload=Payload(
                     type="error_event",
-                    error={"message": f"Execution failed: {str(e)}", "code": "system_error"}
+                    error={"message": f"Execution failed: {str(e)}", "code": "system_error", "recoverable": False}
                 )
             )))
 
