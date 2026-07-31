@@ -46,12 +46,14 @@ class LoopEngine:
             governor.tick()
 
             # 2. Build LLMRequest
-            # In a full implementation, we pass the current context from working_memory
-            # Here we just create a stub request
+            # Extract the system prompt from working_memory (it's the first message with role 'system')
+            context = working_memory.get_context()
+            system_msg = next((m.content for m in context if m.role == "system"), "")
+
             req = LLMRequest(
-                messages=working_memory.get_context(),
+                messages=context,
                 tools=provider.format_tools(tools),
-                system="", # Already in working_memory as a system message
+                system=system_msg,
                 max_tokens=2048,
                 temperature=0.0,
                 stop_sequences=[]
@@ -92,11 +94,22 @@ class LoopEngine:
                         telemetry=telemetry,
                         track_id=track_id
                     )
-                    working_memory.add_tool_result(result)
+                    # Add the model's tool call turn first so context is valid
+                    working_memory.add_message("assistant", response.content or f"Action: {action.tool_call.tool_name}")
+                    # Then add the tool result as a user observation turn
+                    working_memory.add_message("user", f"Observation: {result.output}")
                     episodic_memory.log_observation(result.output, governor.steps)
+                else:
+                    # Tool not found — inject as error observation
+                    working_memory.add_message("assistant", response.content or "")
+                    working_memory.add_message("user", f"Observation: Tool '{action.tool_call.tool_name}' not found in registry.")
+                    episodic_memory.log_observation("Tool not found.", governor.steps)
             elif action.type == ActionType.FINAL_ANSWER:
-                working_memory.add_observation("Final answer provided.")
                 episodic_memory.log_observation("Final answer provided.", governor.steps)
+            else:
+                # THOUGHT_ONLY — add model output back so loop can continue
+                if response.content:
+                    working_memory.add_message("assistant", response.content)
 
             # 7. Check Stop Conditions
             for cond in stop_conditions:

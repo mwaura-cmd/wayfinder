@@ -1,8 +1,7 @@
 from enum import Enum
 from typing import Optional
 from pydantic import BaseModel
-from core.provider import LLMResponse
-from core.tools import ToolCall
+from core.provider import LLMResponse, ToolCall
 
 
 class ActionType(str, Enum):
