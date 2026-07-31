@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wayfinder — Web Research Agent</title>
+  <meta name="description" content="Wayfinder is a precise web research agent that searches the live web methodically and synthesises findings into clear, sourced answers." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Design tokens ─────────────────────────────────────────────────────── */
+    :root {
+      --bg:           #0a0c10;
+      --bg-2:         #0f1117;
+      --bg-3:         #161b27;
+      --bg-4:         #1e2535;
+      --border:       rgba(255,255,255,0.07);
+      --border-2:     rgba(255,255,255,0.12);
+
+      --accent:       #6c8ef5;
+      --accent-glow:  rgba(108,142,245,0.25);
+      --accent-muted: rgba(108,142,245,0.12);
+      --teal:         #35c9a8;
+      --teal-muted:   rgba(53,201,168,0.12);
+      --amber:        #f5a623;
+      --amber-muted:  rgba(245,166,35,0.12);
+      --red:          #f56565;
+
+      --text-1:       #e8ecf4;
+      --text-2:       #8b95b0;
+      --text-3:       #5a6480;
+
+      --font-sans:    'Inter', system-ui, sans-serif;
+      --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+
+      --radius-sm:    6px;
+      --radius-md:    12px;
+      --radius-lg:    20px;
+
+      --ease-spring:  cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-smooth:  cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ── Reset ─────────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 15px; scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text-1);
+      min-height: 100vh;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ────────────────────────────────────────────────────────────── */
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ───────────────────────────────────────────────────────────── */
+    .sidebar {
+      grid-row: 1 / -1;
+      background: var(--bg-2);
+      border-right: 1px solid var(--border);
+      padding: 28px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .brand-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-sub {
+      font-size: 0.68rem;
+      color: var(--text-3);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-top: -2px;
+    }
+
+    .sidebar-section-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 10px;
+    }
+
+    /* History list */
+    #history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-3);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      font-size: 0.78rem;
+      color: var(--text-2);
+      line-height: 1.4;
+    }
+
+    .history-item:hover {
+      border-color: var(--border-2);
+      background: var(--bg-4);
+      color: var(--text-1);
+    }
+
+    .history-date {
+      font-size: 0.65rem;
+      color: var(--text-3);
+      margin-top: 4px;
+      font-family: var(--font-mono);
+    }
+
+    .history-empty {
+      font-size: 0.78rem;
+      color: var(--text-3);
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    /* Status indicator */
+    .status-bar {
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 0.72rem;
+      color: var(--text-3);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--teal);
+      flex-shrink: 0;
+    }
+
+    .status-dot.idle { background: var(--text-3); }
+    .status-dot.working {
+      background: var(--accent);
+      animation: pulse-dot 1.2s ease-in-out infinite;
+    }
+    .status-dot.done { background: var(--teal); }
+    .status-dot.error { background: var(--red); }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    /* ── Main area ─────────────────────────────────────────────────────────── */
+    .topbar {
+      background: var(--bg-2);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .search-wrapper {
+      flex: 1;
+      display: flex;
+      gap: 10px;
+    }
+
+    #question-input {
+      flex: 1;
+      background: var(--bg-3);
+      border: 1px solid var(--border-2);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      color: var(--text-1);
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    #question-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-muted);
+    }
+
+    #question-input::placeholder { color: var(--text-3); }
+    #question-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    #submit-btn {
+      background: linear-gradient(135deg, var(--accent), #8b6cf5);
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 12px 24px;
+      color: white;
+      font-family: var(--font-sans);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s var(--ease-spring), box-shadow 0.2s;
+      white-space: nowrap;
+      box-shadow: 0 4px 20px rgba(108,142,245,0.3);
+    }
+
+    #submit-btn:hover:not(:disabled) {
+      opacity: 0.92;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 28px rgba(108,142,245,0.45);
+    }
+
+    #submit-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    #submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ── Content area ─────────────────────────────────────────────────────── */
+    .content {
+      padding: 32px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Empty state */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      height: 100%;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      opacity: 0.3;
+    }
+
+    .empty-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .empty-sub {
+      font-size: 0.85rem;
+      color: var(--text-3);
+      max-width: 380px;
+      line-height: 1.7;
+    }
+
+    .suggestion-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    .chip {
+      background: var(--bg-3);
+      border: 1px solid var(--border-2);
+      border-radius: 100px;
+      padding: 6px 14px;
+      font-size: 0.78rem;
+      color: var(--text-2);
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+    }
+
+    .chip:hover {
+      background: var(--accent-muted);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── Execution timeline ────────────────────────────────────────────────── */
+    #timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    /* ── Narrative nodes (Layer 1) ─────────────────────────────────────────── */
+    .narrative-node {
+      position: relative;
+      display: flex;
+      gap: 16px;
+    }
+
+    /* Vertical continuity line */
+    .node-rail {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+      width: 32px;
+    }
+
+    .node-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--bg-4);
+      border: 2px solid var(--border-2);
+      flex-shrink: 0;
+      z-index: 1;
+      transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
+    }
+
+    .node-dot.active {
+      border-color: var(--accent);
+      background: var(--accent);
+      box-shadow: 0 0 12px var(--accent-glow);
+      animation: pulse-node 1.8s ease-in-out infinite;
+    }
+
+    .node-dot.done {
+      border-color: var(--teal);
+      background: var(--teal);
+    }
+
+    @keyframes pulse-node {
+      0%, 100% { box-shadow: 0 0 8px var(--accent-glow); }
+      50% { box-shadow: 0 0 20px rgba(108,142,245,0.5); }
+    }
+
+    .node-line {
+      width: 1px;
+      flex: 1;
+      background: linear-gradient(to bottom, var(--border-2), var(--border));
+      min-height: 20px;
+    }
+
+    .node-body {
+      flex: 1;
+      padding-bottom: 20px;
+    }
+
+    /* Narrative header — the conversational statement */
+    .narrative-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .narrative-text {
+      font-size: 0.92rem;
+      font-weight: 500;
+      color: var(--text-1);
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    .narrative-node.active .narrative-text {
+      color: #fff;
+    }
+
+    .narrative-toggle {
+      font-size: 0.7rem;
+      color: var(--text-3);
+      transition: transform 0.25s var(--ease-smooth);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .narrative-node.collapsed .narrative-toggle {
+      transform: rotate(-90deg);
+    }
+
+    /* Work panel (Layer 2) */
+    .work-panel {
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      transition: opacity 0.25s;
+    }
+
+    .narrative-node.active .work-panel {
+      border-color: rgba(108,142,245,0.2);
+      box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+    }
+
+    .work-panel-inner {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 400px;
+      overflow-y: auto;
+      transition: max-height 0.3s var(--ease-smooth);
+    }
+
+    .work-panel-inner::-webkit-scrollbar { width: 4px; }
+    .work-panel-inner::-webkit-scrollbar-track { background: transparent; }
+    .work-panel-inner::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+
+    .narrative-node.collapsed .work-panel-inner {
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    .work-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.78rem;
+      color: var(--text-2);
+      line-height: 1.5;
+      animation: fadeSlideIn 0.25s var(--ease-smooth);
+    }
+
+    .work-item-icon {
+      flex-shrink: 0;
+      font-size: 0.85rem;
+      margin-top: 0.5px;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Typing cursor for active streaming */
+    .typing-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 12px;
+      background: var(--accent);
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* ── Answer block ─────────────────────────────────────────────────────── */
+    #answer-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .completion-summary {
+      background: linear-gradient(135deg, var(--bg-3), var(--bg-4));
+      border: 1px solid rgba(53,201,168,0.25);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .completion-summary::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--teal), var(--accent));
+    }
+
+    .completion-summary:hover {
+      border-color: rgba(53,201,168,0.45);
+      box-shadow: 0 4px 24px rgba(53,201,168,0.1);
+    }
+
+    .completion-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      justify-content: space-between;
+    }
+
+    .completion-icon {
+      font-size: 1.3rem;
+    }
+
+    .completion-message {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--teal);
+      flex: 1;
+    }
+
+    .completion-stats {
+      display: flex;
+      gap: 16px;
+    }
+
+    .stat-pill {
+      background: var(--bg-4);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 3px 10px;
+      font-size: 0.7rem;
+      color: var(--text-2);
+      font-family: var(--font-mono);
+      white-space: nowrap;
+    }
+
+    .expand-hint {
+      font-size: 0.7rem;
+      color: var(--text-3);
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Answer card */
+    .answer-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border-2);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .answer-card-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .answer-card-header-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    .answer-body {
+      padding: 24px;
+      font-size: 0.91rem;
+      line-height: 1.8;
+      color: var(--text-1);
+    }
+
+    .answer-body p { margin-bottom: 12px; }
+    .answer-body p:last-child { margin-bottom: 0; }
+    .answer-body strong { color: #fff; font-weight: 600; }
+    .answer-body em { color: var(--text-2); }
+
+    .answer-body h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 20px 0 8px;
+      color: var(--text-1);
+    }
+
+    .answer-body ul, .answer-body ol {
+      padding-left: 20px;
+      margin-bottom: 12px;
+    }
+
+    .answer-body li { margin-bottom: 4px; }
+
+    .answer-body a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .answer-body a:hover { text-decoration: underline; }
+
+    /* Sources section */
+    .sources-section {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .sources-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 4px;
+    }
+
+    .source-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .source-chip:hover {
+      border-color: var(--accent);
+      background: var(--accent-muted);
+    }
+
+    .source-chip-favicon {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+    }
+
+    .source-chip-url {
+      font-size: 0.73rem;
+      color: var(--text-2);
+      font-family: var(--font-mono);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .source-chip:hover .source-chip-url { color: var(--accent); }
+
+    /* ── Error block ──────────────────────────────────────────────────────── */
+    .error-block {
+      background: rgba(245,101,101,0.08);
+      border: 1px solid rgba(245,101,101,0.25);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .error-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .error-text { font-size: 0.85rem; color: #f8a3a3; line-height: 1.6; }
+
+    /* ── Loading shimmer ──────────────────────────────────────────────────── */
+    .shimmer {
+      background: linear-gradient(90deg, var(--bg-3) 25%, var(--bg-4) 50%, var(--bg-3) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius-sm);
+      height: 14px;
+    }
+
+    @keyframes shimmer {
+      from { background-position: 200% 0; }
+      to   { background-position: -200% 0; }
+    }
+
+    /* ── Scroll to bottom btn ─────────────────────────────────────────────── */
+    #scroll-btn {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: var(--bg-4);
+      border: 1px solid var(--border-2);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.1rem;
+      color: var(--text-2);
+      transition: opacity 0.2s, transform 0.2s;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #scroll-btn.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    #scroll-btn:hover { transform: scale(1.1); }
+
+    /* ── Responsive ───────────────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .sidebar { display: none; }
+      .content { padding: 20px; }
+      .topbar { padding: 16px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div>
+        <div class="brand">
+          <div class="brand-icon">🔭</div>
+          <div>
+            <div class="brand-name">Wayfinder</div>
+            <div class="brand-sub">Web Research Agent</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="sidebar-section-label">Research history</div>
+        <div id="history-list">
+          <div class="history-empty">No sessions yet</div>
+        </div>
+      </div>
+
+      <div id="status-bar-container">
+        <div class="status-bar" id="status-bar">
+          <div class="status-dot idle" id="status-dot"></div>
+          <span id="status-text">Ready to research</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div style="display:flex; flex-direction:column; overflow:hidden;">
+
+      <!-- Topbar / input -->
+      <div class="topbar">
+        <div class="search-wrapper">
+          <input
+            id="question-input"
+            type="text"
+            placeholder="Ask anything — Wayfinder will search the web and reason about it…"
+            autocomplete="off"
+            spellcheck="true"
+          />
+          <button id="submit-btn">Research ↗</button>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="content" id="content-area">
+
+        <!-- Empty state -->
+        <div class="empty-state" id="empty-state">
+          <div class="empty-icon">🔭</div>
+          <div class="empty-title">What would you like to research?</div>
+          <div class="empty-sub">
+            Wayfinder breaks your question into sub-searches, reads live
+            sources, and synthesises a sourced answer — not a guess.
+          </div>
+          <div class="suggestion-chips">
+            <div class="chip" onclick="fillQuestion(this)">Latest developments in fusion energy 2025</div>
+            <div class="chip" onclick="fillQuestion(this)">Who founded OpenAI and when did Sam Altman return?</div>
+            <div class="chip" onclick="fillQuestion(this)">Compare Next.js 14 and Remix for a new project</div>
+            <div class="chip" onclick="fillQuestion(this)">What caused the 2023 SVB bank collapse?</div>
+          </div>
+        </div>
+
+        <!-- Timeline + answer rendered here -->
+        <div id="research-area" style="display:none; flex-direction:column; gap:20px;">
+          <div id="timeline"></div>
+          <div id="answer-section"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Scroll to bottom button -->
+  <div id="scroll-btn" onclick="scrollToBottom()" title="Scroll to bottom">↓</div>
+
+  <script>
+    // ── State ────────────────────────────────────────────────────────────────
+    let currentEventSource = null;
+    let activeNodeEl = null;
+    let activeWorkPanel = null;
+    let nodeCount = 0;
+    let workCount = 0;
+    let allEvents = [];   // full event log for timeline replay (§8)
+
+    // ── DOM refs ─────────────────────────────────────────────────────────────
+    const qInput       = document.getElementById('question-input');
+    const submitBtn    = document.getElementById('submit-btn');
+    const contentArea  = document.getElementById('content-area');
+    const emptyState   = document.getElementById('empty-state');
+    const researchArea = document.getElementById('research-area');
+    const timeline     = document.getElementById('timeline');
+    const answerSec    = document.getElementById('answer-section');
+    const statusDot    = document.getElementById('status-dot');
+    const statusText   = document.getElementById('status-text');
+    const scrollBtn    = document.getElementById('scroll-btn');
+
+    // ── Scroll tracking ───────────────────────────────────────────────────────
+    contentArea.addEventListener('scroll', () => {
+      const nearBottom =
+        contentArea.scrollHeight - contentArea.scrollTop - contentArea.clientHeight < 120;
+      scrollBtn.classList.toggle('visible', !nearBottom);
+    });
+
+    function scrollToBottom() {
+      contentArea.scrollTo({ top: contentArea.scrollHeight, behavior: 'smooth' });
+    }
+
+    function autoScroll() {
+      const nearBottom =
+        contentArea.scrollHeight - contentArea.scrollTop - contentArea.clientHeight < 300;
+      if (nearBottom) {
+        contentArea.scrollTo({ top: contentArea.scrollHeight, behavior: 'smooth' });
+      }
+    }
+
+    // ── Status helpers ────────────────────────────────────────────────────────
+    function setStatus(state, text) {
+      statusDot.className = 'status-dot ' + state;
+      statusText.textContent = text;
+    }
+
+    // ── Input helpers ─────────────────────────────────────────────────────────
+    function fillQuestion(chipEl) {
+      qInput.value = chipEl.textContent;
+      qInput.focus();
+    }
+
+    qInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        startResearch();
+      }
+    });
+
+    submitBtn.addEventListener('click', startResearch);
+
+    // ── Reset UI ──────────────────────────────────────────────────────────────
+    function resetUI() {
+      timeline.innerHTML = '';
+      answerSec.innerHTML = '';
+      emptyState.style.display = 'none';
+      researchArea.style.display = 'flex';
+      activeNodeEl = null;
+      activeWorkPanel = null;
+      nodeCount = 0;
+      workCount = 0;
+      allEvents = [];
+    }
+
+    // ── Create a narrative node (Layer 1) ────────────────────────────────────
+    function createNarrativeNode(text) {
+      nodeCount++;
+      const nodeId = 'node-' + nodeCount;
+
+      // Close previous active node
+      if (activeNodeEl) {
+        activeNodeEl.querySelector('.node-dot').className = 'node-dot done';
+        activeNodeEl.classList.remove('active');
+
+        // Remove typing cursor from previous work panel
+        const prevCursor = activeNodeEl.querySelector('.typing-cursor');
+        if (prevCursor) prevCursor.remove();
+      }
+
+      const nodeEl = document.createElement('div');
+      nodeEl.className = 'narrative-node active';
+      nodeEl.id = nodeId;
+
+      nodeEl.innerHTML = `
+        <div class="node-rail">
+          <div class="node-dot active"></div>
+          <div class="node-line"></div>
+        </div>
+        <div class="node-body">
+          <div class="narrative-header" onclick="toggleNode('${nodeId}')">
+            <div class="narrative-text">${escapeHtml(text)}</div>
+            <div class="narrative-toggle">▾</div>
+          </div>
+          <div class="work-panel">
+            <div class="work-panel-inner" id="${nodeId}-work"></div>
+          </div>
+        </div>
+      `;
+
+      timeline.appendChild(nodeEl);
+      activeNodeEl = nodeEl;
+      activeWorkPanel = nodeEl.querySelector('.work-panel-inner');
+      autoScroll();
+    }
+
+    // If no narrative node yet, create a default one for initial work items
+    function ensureActiveNode() {
+      if (!activeNodeEl) {
+        createNarrativeNode("Let me start researching your question…");
+      }
+    }
+
+    // ── Add a work item (Layer 2) ─────────────────────────────────────────────
+    function addWorkItem(text) {
+      ensureActiveNode();
+
+      workCount++;
+      const item = document.createElement('div');
+      item.className = 'work-item';
+
+      // Detect icon from text prefix
+      let icon = '·';
+      if (text.startsWith('🔍')) icon = '';
+      else if (text.startsWith('📄')) icon = '';
+      else if (text.startsWith('🧠')) icon = '';
+      else if (text.startsWith('📋')) icon = '';
+      else if (text.startsWith('⚠')) icon = '';
+
+      const cleanText = icon === '' ? text : text;
+
+      item.innerHTML = `<span class="work-item-icon">${icon}</span><span>${escapeHtml(cleanText)}</span>`;
+
+      // Remove cursor from last item if it exists
+      const lastItem = activeWorkPanel.lastElementChild;
+      if (lastItem) {
+        const cursor = lastItem.querySelector('.typing-cursor');
+        if (cursor) cursor.remove();
+      }
+
+      // Add cursor to new item
+      item.querySelector('span:last-child').innerHTML +=
+        ' <span class="typing-cursor"></span>';
+
+      activeWorkPanel.appendChild(item);
+      autoScroll();
+    }
+
+    // ── Toggle a collapsed node ───────────────────────────────────────────────
+    function toggleNode(nodeId) {
+      const nodeEl = document.getElementById(nodeId);
+      if (nodeEl) nodeEl.classList.toggle('collapsed');
+    }
+
+    // ── Render the final answer ───────────────────────────────────────────────
+    function renderAnswer(text, meta) {
+      // Close the active node
+      if (activeNodeEl) {
+        activeNodeEl.querySelector('.node-dot').className = 'node-dot done';
+        activeNodeEl.classList.remove('active');
+        const cursor = activeNodeEl.querySelector('.typing-cursor');
+        if (cursor) cursor.remove();
+      }
+
+      const sources = meta.sources || [];
+      const elapsed = meta.elapsed_seconds || 0;
+      const searchCount = meta.search_count || 0;
+      const hitCap = meta.hit_cap || false;
+
+      // Build commit-message style completion summary
+      let summaryMsg = '';
+      if (hitCap) {
+        summaryMsg = `Searched ${searchCount} times within the limit — partial answer below`;
+      } else if (sources.length === 0) {
+        summaryMsg = `Answered in ${elapsed}s using memory and prior knowledge`;
+      } else {
+        summaryMsg = `Reviewed ${sources.length} source${sources.length !== 1 ? 's' : ''} and answered in ${elapsed}s`;
+      }
+
+      answerSec.innerHTML = `
+        <div class="completion-summary" onclick="toggleTimeline()" id="completion-summary">
+          <div class="completion-header">
+            <span class="completion-icon">${hitCap ? '⚠️' : '✅'}</span>
+            <span class="completion-message">${escapeHtml(summaryMsg)}</span>
+            <div class="completion-stats">
+              <span class="stat-pill">${searchCount} search${searchCount !== 1 ? 'es' : ''}</span>
+              <span class="stat-pill">${elapsed}s</span>
+            </div>
+          </div>
+          <div class="expand-hint">▾ Click to ${timelineVisible ? 'hide' : 'show'} research trail</div>
+        </div>
+
+        <div class="answer-card">
+          <div class="answer-card-header">
+            <span style="color:var(--teal); font-size:1rem;">✦</span>
+            <span class="answer-card-header-label">Research answer</span>
+          </div>
+          <div class="answer-body" id="answer-body">
+            ${formatAnswer(text)}
+          </div>
+          ${sources.length > 0 ? renderSources(sources) : ''}
+        </div>
+      `;
+
+      // Scroll to answer
+      setTimeout(() => {
+        answerSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 200);
+    }
+
+    let timelineVisible = true;
+
+    function toggleTimeline() {
+      timelineVisible = !timelineVisible;
+      timeline.style.display = timelineVisible ? 'flex' : 'none';
+      const hint = document.querySelector('.expand-hint');
+      if (hint) hint.textContent = `▾ Click to ${timelineVisible ? 'hide' : 'show'} research trail`;
+    }
+
+    function formatAnswer(text) {
+      // Light markdown-like formatting
+      let html = escapeHtml(text)
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/`(.+?)`/g, '<code style="font-family:var(--font-mono);font-size:0.85em;background:var(--bg-3);padding:1px 5px;border-radius:3px;">$1</code>')
+        .replace(/\[Source (\d+)\]/g, '<sup style="color:var(--accent);font-size:0.7em;">[S$1]</sup>')
+        .replace(/^#{2,3}\s+(.+)$/gm, '<h2>$1</h2>')
+        .replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>.+<\/li>\n?)+/g, '<ul>$&</ul>')
+        .split('\n\n')
+        .map(p => p.trim())
+        .filter(p => p)
+        .map(p => p.startsWith('<h2>') || p.startsWith('<ul>') ? p : `<p>${p}</p>`)
+        .join('\n');
+      return html;
+    }
+
+    function renderSources(sources) {
+      const chips = sources.slice(0, 12).map(url => {
+        const domain = (() => { try { return new URL(url).hostname; } catch { return url; } })();
+        const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+        return `
+          <a class="source-chip" href="${escapeHtml(url)}" target="_blank" rel="noopener">
+            <img class="source-chip-favicon" src="${faviconUrl}" onerror="this.style.display='none'" loading="lazy" />
+            <span class="source-chip-url">${escapeHtml(domain)}</span>
+          </a>`;
+      }).join('');
+      return `
+        <div class="sources-section">
+          <div class="sources-label">Sources</div>
+          ${chips}
+        </div>`;
+    }
+
+    // ── Render error ──────────────────────────────────────────────────────────
+    function renderError(text) {
+      if (activeNodeEl) {
+        activeNodeEl.querySelector('.node-dot').className = 'node-dot';
+        activeNodeEl.querySelector('.node-dot').style.borderColor = 'var(--red)';
+        activeNodeEl.classList.remove('active');
+      }
+      answerSec.innerHTML = `
+        <div class="error-block">
+          <span class="error-icon">⚠️</span>
+          <div class="error-text">${escapeHtml(text)}</div>
+        </div>`;
+    }
+
+    // ── Auth helpers ──────────────────────────────────────────────────────────
+    const AUTH_KEY = 'wayfinder_api_key';
+
+    function getStoredKey() {
+      return localStorage.getItem(AUTH_KEY) || '';
+    }
+
+    function setStoredKey(k) {
+      localStorage.setItem(AUTH_KEY, k);
+    }
+
+    function authHeaders() {
+      const k = getStoredKey();
+      return k ? { 'X-API-Key': k } : {};
+    }
+
+    // Check if auth is required by hitting /health — if a key was previously
+    // stored and is wrong, /research will return 401 which we catch there.
+    async function ensureAuth() {
+      const stored = getStoredKey();
+      // If we have a stored key, trust it until a 401 proves otherwise
+      if (stored) return;
+      // No stored key — check if the server requires one
+      const probe = await fetch('/health').catch(() => null);
+      if (!probe) return; // server unreachable — proceed and fail gracefully
+      // Server is up. Try a protected call; if it returns 401, show auth modal.
+      const test = await fetch('/history?limit=1', { headers: authHeaders() }).catch(() => null);
+      if (test && test.status === 401) {
+        showAuthModal();
+      }
+    }
+
+    function showAuthModal() {
+      document.getElementById('auth-modal').style.display = 'flex';
+      document.getElementById('auth-key-input').focus();
+    }
+
+    function hideAuthModal() {
+      document.getElementById('auth-modal').style.display = 'none';
+    }
+
+    document.getElementById('auth-save-btn').addEventListener('click', () => {
+      const k = document.getElementById('auth-key-input').value.trim();
+      if (!k) return;
+      setStoredKey(k);
+      hideAuthModal();
+      loadHistory();
+    });
+
+    document.getElementById('auth-key-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('auth-save-btn').click();
+    });
+
+    // ── Start research ────────────────────────────────────────────────────────
+    async function startResearch() {
+      const question = qInput.value.trim();
+      if (!question) { qInput.focus(); return; }
+
+      // Cancel any existing stream
+      if (currentEventSource) {
+        currentEventSource.close();
+        currentEventSource = null;
+      }
+
+      // UI state: working
+      submitBtn.disabled = true;
+      qInput.disabled = true;
+      setStatus('working', 'Researching…');
+      resetUI();
+
+      try {
+        // POST to start the agent task
+        const res = await fetch('/research', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ question }),
+        });
+
+        if (res.status === 401) {
+          // Key is wrong or missing — re-prompt
+          submitBtn.disabled = false;
+          qInput.disabled = false;
+          setStatus('idle', 'Ready to research');
+          showAuthModal();
+          return;
+        }
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+          throw new Error(err.detail || `HTTP ${res.status}`);
+        }
+
+        const { task_id } = await res.json();
+
+        // SSE: EventSource doesn't support custom headers, so pass key as query param
+        const streamKey = getStoredKey();
+        const streamUrl = streamKey
+          ? `/stream/${task_id}?key=${encodeURIComponent(streamKey)}`
+          : `/stream/${task_id}`;
+        const evtSource = new EventSource(streamUrl);
+        currentEventSource = evtSource;
+
+        evtSource.onmessage = (e) => {
+          const event = JSON.parse(e.data);
+          allEvents.push(event);  // keep full log for replay (§8)
+
+          switch (event.type) {
+            case 'narrative':
+              createNarrativeNode(event.text);
+              setStatus('working', 'Thinking…');
+              break;
+
+            case 'work':
+              addWorkItem(event.text);
+              break;
+
+            case 'answer':
+              renderAnswer(event.text, event.meta || {});
+              setStatus('done', 'Research complete');
+              submitBtn.disabled = false;
+              qInput.disabled = false;
+              evtSource.close();
+              currentEventSource = null;
+              loadHistory();
+              break;
+
+            case 'error':
+              renderError(event.text);
+              setStatus('error', 'Error occurred');
+              submitBtn.disabled = false;
+              qInput.disabled = false;
+              evtSource.close();
+              currentEventSource = null;
+              break;
+
+            case 'done':
+              evtSource.close();
+              currentEventSource = null;
+              if (submitBtn.disabled) {
+                submitBtn.disabled = false;
+                qInput.disabled = false;
+                setStatus('idle', 'Ready to research');
+              }
+              break;
+          }
+        };
+
+        evtSource.onerror = () => {
+          if (evtSource.readyState === EventSource.CLOSED) return;
+          renderError('Connection to server lost. Is the backend running?');
+          setStatus('error', 'Connection lost');
+          submitBtn.disabled = false;
+          qInput.disabled = false;
+          evtSource.close();
+          currentEventSource = null;
+        };
+
+      } catch (err) {
+        renderError(err.message || 'Failed to start research task.');
+        setStatus('error', 'Error');
+        submitBtn.disabled = false;
+        qInput.disabled = false;
+      }
+    }
+
+    // ── History ───────────────────────────────────────────────────────────────
+    async function loadHistory() {
+      try {
+        const res = await fetch('/history?limit=15', { headers: authHeaders() });
+        if (!res.ok) return;
+        const { sessions, memory_available } = await res.json();
+        const list = document.getElementById('history-list');
+        if (!sessions.length) {
+          list.innerHTML = '<div class="history-empty">No sessions yet</div>';
+          return;
+        }
+        list.innerHTML = sessions.map(s => `
+          <div class="history-item" onclick="fillQuestion({textContent: ${JSON.stringify(s.question)}})">
+            ${escapeHtml(s.question.length > 80 ? s.question.slice(0, 80) + '…' : s.question)}
+            <div class="history-date">${s.created_at.slice(0, 10)}</div>
+          </div>`).join('');
+      } catch { /* ignore */ }
+    }
+
+    // ── Utility ───────────────────────────────────────────────────────────────
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    ensureAuth().then(() => loadHistory());
+    qInput.focus();
+  </script>
+
+  <!-- Auth modal -->
+  <div id="auth-modal" style="
+    display:none; position:fixed; inset:0; z-index:1000;
+    background:rgba(0,0,0,0.75); backdrop-filter:blur(8px);
+    align-items:center; justify-content:center;
+  ">
+    <div style="
+      background:#0f1117; border:1px solid rgba(108,142,245,0.3);
+      border-radius:20px; padding:36px; width:100%; max-width:440px;
+      box-shadow:0 24px 80px rgba(0,0,0,0.6);
+      font-family:'Inter',sans-serif;
+    ">
+      <div style="font-size:2rem; margin-bottom:12px;">🔑</div>
+      <div style="font-size:1.1rem; font-weight:700; color:#e8ecf4; margin-bottom:6px;">Access key required</div>
+      <div style="font-size:0.82rem; color:#8b95b0; margin-bottom:24px; line-height:1.6;">
+        This Wayfinder instance is protected. Enter the <code style="background:#1e2535;padding:2px 6px;border-radius:4px;font-size:0.8rem;">WAYFINDER_API_KEY</code>
+        you set in your Render dashboard. It's stored in your browser — you won't need to enter it again.
+      </div>
+      <input id="auth-key-input" type="password" placeholder="Enter your access key…" style="
+        width:100%; background:#161b27; border:1px solid rgba(255,255,255,0.12);
+        border-radius:10px; padding:11px 16px; color:#e8ecf4;
+        font-family:'Inter',sans-serif; font-size:0.88rem;
+        outline:none; margin-bottom:12px;
+        transition:border-color 0.2s;
+      " onfocus="this.style.borderColor='#6c8ef5'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'" />
+      <button id="auth-save-btn" style="
+        width:100%; background:linear-gradient(135deg,#6c8ef5,#8b6cf5);
+        border:none; border-radius:10px; padding:12px;
+        color:white; font-family:'Inter',sans-serif; font-size:0.88rem;
+        font-weight:600; cursor:pointer;
+        box-shadow:0 4px 20px rgba(108,142,245,0.3);
+      ">Save &amp; Continue</button>
+    </div>
+  </div>
+
+</body>
+</html>

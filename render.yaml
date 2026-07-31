@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: wayfinder
+    runtime: python
+    region: oregon   # change to: frankfurt, singapore, ohio — whichever is closest to you
+    plan: free
+
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+
+    # Health check — Render uses this to confirm the service is live
+    healthCheckPath: /health
+
+    envVars:
+      # Set these in the Render dashboard under Environment → Secret Files
+      # DO NOT hardcode real values here — this file is committed to git
+      - key: GEMINI_API_KEY
+        sync: false          # "sync: false" means Render will prompt you to fill it in
+
+      - key: TAVILY_API_KEY
+        sync: false
+
+      - key: WAYFINDER_API_KEY
+        sync: false          # Choose any strong random string, e.g. output of:
+                             #   python -c "import secrets; print(secrets.token_urlsafe(32))"
+
+      - key: MAX_MEMORY_SESSIONS
+        value: "200"
+
+      # PORT is injected automatically by Render — do not set it manually
