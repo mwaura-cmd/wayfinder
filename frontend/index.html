@@ -1223,41 +1223,53 @@
 
           switch (payload.type) {
             case 'narrative_start':
-              createNarrativeNode(payload.narrative);
+              createNarrativeNode(payload.narrative || '');
               setStatus('working', 'Thinking…');
               break;
 
-            case 'work_delta':
-              if (payload.detail) {
-                addWorkItem(payload.detail);
-              } else if (payload.narrative) {
-                addWorkItem(payload.narrative);
-              }
+            case 'work_delta': {
+              // Both detail and narrative fields may carry content — use whichever is present
+              const workText = payload.detail || payload.narrative || payload.label || '';
+              if (workText) addWorkItem(workText);
               break;
+            }
 
-            case 'run_complete':
+            case 'run_complete': {
+              // Parse rich meta stats packed into payload.label by the engine
+              // Format: "search_count=N|elapsed=S|source_count=N|sources=url1,url2,..."
+              let searchCount = 0, elapsed = 0, sources = [];
+              if (payload.label) {
+                const parts = Object.fromEntries(
+                  payload.label.split('|').map(kv => kv.split('='))
+                );
+                searchCount = parseInt(parts.search_count || '0', 10) || 0;
+                elapsed = parseFloat(parts.elapsed || '0') || 0;
+                const rawSources = parts.sources || '';
+                sources = rawSources ? rawSources.split(',').filter(Boolean) : [];
+              }
+
               if (payload.final_output) {
-                // If it's the final answer
-                renderAnswer(payload.final_output, { summary: payload.summary });
+                const meta = { search_count: searchCount, elapsed_seconds: elapsed, sources };
+                renderAnswer(payload.final_output, meta);
                 setStatus('done', 'Research complete');
               } else {
-                // If it's just a subagent track complete, or error exit
-                if (!payload.final_output && payload.summary.includes("error") || payload.summary.includes("aborted")) {
-                  renderError(payload.summary);
+                const summary = payload.summary || '';
+                if (summary.includes('error') || summary.includes('aborted')) {
+                  renderError(summary);
                   setStatus('error', 'Error occurred');
                 } else {
-                  // Standard completion without answer
-                  addWorkItem(`[Summary: ${payload.summary}]`);
+                  addWorkItem(summary || 'Complete');
                   setStatus('done', 'Complete');
                 }
               }
-              
+
               submitBtn.disabled = false;
               qInput.disabled = false;
               evtSource.close();
               currentEventSource = null;
               loadHistory();
               break;
+            }
 
             case 'error_event':
               renderError(payload.error ? payload.error.message : 'Unknown error');
