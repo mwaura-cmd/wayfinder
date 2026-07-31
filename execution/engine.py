@@ -58,7 +58,7 @@ class LoopEngine:
 
             req = LLMRequest(
                 messages=context,
-                tools=provider.format_tools(tools),
+                tools=[], # Force text-based ReAct mode by not passing native tools
                 system=system_msg,
                 max_tokens=4096,
                 temperature=0.0,

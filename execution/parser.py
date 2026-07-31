@@ -1,3 +1,4 @@
+import json
 import re
 import uuid
 from enum import Enum
@@ -29,66 +30,98 @@ class AgentAction(BaseModel):
     raw_response: str
 
 
-class OutputParser:
-    # ── Regex patterns for text-mode ReAct output ──────────────────────────
-    _NARRATIVE_RE = re.compile(r"NARRATIVE:\s*(.+?)(?=\n|$)", re.IGNORECASE)
-    _THOUGHT_RE   = re.compile(r"Thought:\s*(.+?)(?=\nAction:|$)", re.IGNORECASE | re.DOTALL)
-    _FINAL_RE     = re.compile(r"Final Answer:\s*(.+)", re.IGNORECASE | re.DOTALL)
+# ── Compiled patterns (text-based ReAct format) ──────────────────────────────
+_NARRATIVE_RE  = re.compile(r"NARRATIVE:\s*(.+?)(?=\nThought:|\nAction:|\nFinal Answer:|$)", re.IGNORECASE | re.DOTALL)
+_THOUGHT_RE    = re.compile(r"Thought:\s*(.+?)(?=\nAction:|\nFinal Answer:|$)", re.IGNORECASE | re.DOTALL)
+_ACTION_RE     = re.compile(r"Action:\s*([\w_]+)", re.IGNORECASE)
+_INPUT_RE      = re.compile(r"Action Input:\s*(\{.*)", re.IGNORECASE | re.DOTALL)
+_FINAL_RE      = re.compile(r"Final Answer:\s*(.+)", re.IGNORECASE | re.DOTALL)
 
+
+def _extract_first_json(text: str) -> dict:
+    """Extract the first valid JSON object from text."""
+    # Find the first { and try progressively longer slices until valid JSON
+    start = text.find("{")
+    if start == -1:
+        return {}
+    for end in range(len(text), start, -1):
+        try:
+            return json.loads(text[start:end])
+        except json.JSONDecodeError:
+            continue
+    return {}
+
+
+class OutputParser:
     @classmethod
     def parse(cls, response: LLMResponse) -> AgentAction:
         raw = response.content or ""
-        tool_calls = response.tool_calls or []
+        native_calls = response.tool_calls or []
 
-        # ── Step 1: Extract narrative from model text ──────────────────────
-        # Use NARRATIVE: tag if present (ReAct text mode).
+        # ── Priority 1: Native function-call response (Gemini FC mode) ────────
+        # This only triggers if we registered native tools AND Gemini used them.
+        if native_calls:
+            tc = native_calls[0]
+            narrative = f"Let me search for '{tc.inputs.get('query', tc.tool_name)}'."
+            # Try to extract a NARRATIVE from any accompanying text
+            m = _NARRATIVE_RE.search(raw)
+            if m:
+                narrative = m.group(1).strip()
+            return AgentAction(
+                type=ActionType.TOOL_CALL,
+                narrative=narrative,
+                thought=raw[:200] if raw else "Using tool.",
+                tool_call=tc,
+                raw_response=raw,
+            )
+
+        # ── Priority 2: Text-based ReAct parsing ──────────────────────────────
+        # Extract NARRATIVE
         narrative = ""
-        m = cls._NARRATIVE_RE.search(raw)
+        m = _NARRATIVE_RE.search(raw)
         if m:
             narrative = m.group(1).strip()
 
-        # If no explicit NARRATIVE tag, use the first non-empty text line
-        # (this is common in native function-calling mode where the model
-        # includes a short preamble sentence before the function call).
-        if not narrative and raw:
-            first_line = raw.strip().split("\n")[0].strip()
-            # Accept it as narrative if it looks like a sentence (not a keyword)
-            if first_line and not first_line.lower().startswith(("thought:", "action:", "observation:")):
-                narrative = first_line
-
-        # ── Step 2: Extract thought ────────────────────────────────────────
+        # Extract Thought
         thought = "Reasoning..."
-        m = cls._THOUGHT_RE.search(raw)
+        m = _THOUGHT_RE.search(raw)
         if m:
             thought = m.group(1).strip()
-        elif raw and not narrative:
-            thought = raw[:200]
 
-        # ── Step 3: Native function call (Gemini function-calling mode) ────
-        if tool_calls:
-            tc = tool_calls[0]
-            # Generate a natural narrative from the tool call if we don't have one
+        # ── Check for Action: + Action Input: (tool call in text format) ──────
+        action_m = _ACTION_RE.search(raw)
+        input_m  = _INPUT_RE.search(raw)
+
+        if action_m and input_m:
+            tool_name = action_m.group(1).strip()
+            raw_input = input_m.group(1).strip()
+            inputs = _extract_first_json(raw_input)
+
             if not narrative:
-                query = tc.inputs.get("query", "")
+                query = inputs.get("query", "")
                 if query:
                     narrative = f"Let me search for '{query}'."
                 else:
-                    narrative = f"Let me use {tc.tool_name} to gather information."
+                    narrative = f"Let me use {tool_name} to gather more information."
 
             return AgentAction(
                 type=ActionType.TOOL_CALL,
                 narrative=narrative,
                 thought=thought,
-                tool_call=tc,
+                tool_call=ToolCall(
+                    tool_name=tool_name,
+                    inputs=inputs,
+                    call_id=str(uuid.uuid4()),
+                ),
                 raw_response=raw,
             )
 
-        # ── Step 4: Final Answer detection (text-mode ReAct) ───────────────
-        m = cls._FINAL_RE.search(raw)
+        # ── Check for Final Answer: ────────────────────────────────────────────
+        m = _FINAL_RE.search(raw)
         if m:
             final_answer = m.group(1).strip()
             if not narrative:
-                narrative = "I have enough information. Let me put together the final answer."
+                narrative = "I have enough information. Here is my answer."
             return AgentAction(
                 type=ActionType.FINAL_ANSWER,
                 narrative=narrative,
@@ -97,24 +130,10 @@ class OutputParser:
                 raw_response=raw,
             )
 
-        # ── Step 5: Treat the entire response as the final answer if it
-        #    looks substantive (Gemini sometimes returns a direct answer
-        #    without the "Final Answer:" prefix when no tools are registered
-        #    or all searches are done).
-        if raw and len(raw.strip()) > 80:
-            if not narrative:
-                narrative = "I have gathered enough information. Here is my answer."
-            return AgentAction(
-                type=ActionType.FINAL_ANSWER,
-                narrative=narrative,
-                thought=thought,
-                final_answer=raw.strip(),
-                raw_response=raw,
-            )
-
-        # ── Step 6: Fallback — thought-only (model is deliberating) ────────
+        # ── Fallback: model is still deliberating (thought-only) ──────────────
+        # Do NOT treat this as a final answer — let the loop continue.
         if not narrative:
-            narrative = "Let me think about this..."
+            narrative = "Let me think about how to approach this..."
         return AgentAction(
             type=ActionType.THOUGHT_ONLY,
             narrative=narrative,

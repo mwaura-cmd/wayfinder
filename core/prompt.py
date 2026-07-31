@@ -1,7 +1,8 @@
-from typing import List
+from typing import List, Any
 from core.provider import BaseLLMProvider
-from core.tools import ToolDefinition, ToolRegistry
+from core.tools import ToolDefinition
 from core.skills import SkillDefinition
+
 
 class PromptAssembler:
     @classmethod
@@ -11,40 +12,54 @@ class PromptAssembler:
         tools: List[ToolDefinition],
         skills: List[SkillDefinition],
         provider: BaseLLMProvider,
-        narrative_injection: bool = True
     ) -> str:
-        
+        blocks = []
+
         # Block 1: Role
-        blocks = [role_prompt]
+        blocks.append(role_prompt)
 
-        # Block 2: Narrative Injection
-        if narrative_injection:
-            blocks.append(
-                "Before taking any action, state your intent in one clear present-tense sentence."
-            )
+        # Block 2: Tool descriptions (tell the model what's available)
+        if tools:
+            tool_lines = []
+            for t in tools:
+                # Extract input field descriptions from schema
+                props = t.input_schema.get("properties", {})
+                param_desc = ", ".join(
+                    f'"{k}": {v.get("description", k)}' for k, v in props.items()
+                )
+                tool_lines.append(
+                    f"- {t.name}: {t.description}\n"
+                    f"  Input JSON: {{{param_desc}}}"
+                )
+            blocks.append("Available Tools:\n" + "\n".join(tool_lines))
 
-        # Block 3: Tool & Skill Descriptions
-        tool_desc = ToolRegistry.describe_for_prompt(tools)
-        if tool_desc:
-            blocks.append("Available Tools:\n" + tool_desc)
-            
         if skills:
-            skill_lines = []
-            for s in skills:
-                skill_lines.append(f"- {s.name}: {s.description}")
+            skill_lines = [f"- {s.name}: {s.description}" for s in skills]
             blocks.append("Available Skills:\n" + "\n".join(skill_lines))
 
-        # Block 4: ReAct Format Template
-        react_format = """
-Respond in the following format:
-Thought: [your reasoning]
-Action: [tool_name or skill_name]
-Action Input: [JSON parameters]
+        # Block 3: Strict output format (text-based ReAct)
+        # This is the ONLY format the model should use — no deviation.
+        tool_name_example = tools[0].name if tools else "tool_name"
+        format_block = f"""You MUST respond in one of these two formats ONLY — no other format is acceptable.
 
-Once you have a final answer, use this format:
-Thought: [your reasoning]
-Final Answer: [response to the user]
-"""
-        blocks.append(react_format)
+FORMAT A — when you need to use a tool:
+NARRATIVE: <One first-person sentence describing what you are about to do — this is shown to the user>
+Thought: <Your reasoning>
+Action: {tool_name_example}
+Action Input: {{"query": "your search terms"}}
+
+FORMAT B — when you have enough information to give a complete answer:
+NARRATIVE: <One first-person sentence saying you have the answer>
+Thought: <Your reasoning>
+Final Answer: <Your complete, detailed answer to the original question>
+
+Rules:
+- NARRATIVE must always be present and must be a natural, specific, first-person sentence.
+- Never skip the NARRATIVE line.
+- Never mix Format A and Format B in one response.
+- After each Observation you receive, output the next Format A or Format B — never stop mid-way.
+- When in doubt, do one more search rather than guessing."""
+
+        blocks.append(format_block)
 
         return "\n\n".join(blocks)
