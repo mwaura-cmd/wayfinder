@@ -8,12 +8,8 @@ Serves:
   GET  /history   → past research sessions               [auth required]
   GET  /health    → liveness probe for Render            [public]
 
-Auth:
-  All non-public endpoints require the header:
-    X-API-Key: <WAYFINDER_API_KEY>
-  The frontend stores this key in localStorage and sends it automatically.
-  If WAYFINDER_API_KEY is not set, auth is skipped with a startup warning
-  (safe for local dev; never skip in production).
+  If deployed to a public server, please ensure you add an authentication layer.
+  (Previously this used a WAYFINDER_API_KEY, which was removed per user request).
 
 Deployment note:
   Binds to 0.0.0.0 so Render's router can reach the process.
@@ -39,7 +35,7 @@ import threading
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -55,11 +51,6 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # ── Startup warnings ────────────────────────────────────────────────────────────
-if not config.WAYFINDER_API_KEY:
-    log.warning(
-        "WAYFINDER_API_KEY is not set — API endpoints are UNPROTECTED. "
-        "Set this variable in your .env file (local) or Render dashboard (production)."
-    )
 if not config.GEMINI_API_KEY:
     log.warning("GEMINI_API_KEY is not set — the agent will not be able to call Gemini.")
 if not config.TAVILY_API_KEY:
@@ -91,29 +82,6 @@ _task_queues: dict[str, queue.Queue] = {}
 _SENTINEL = object()
 
 
-# ── Auth dependency ─────────────────────────────────────────────────────────────
-
-async def require_api_key(request: Request) -> None:
-    """
-    FastAPI dependency — rejects requests without the correct API key.
-    Accepts the key via:
-      - X-API-Key header (for fetch() calls)
-      - ?key= query parameter (for EventSource, which can't set headers)
-    If WAYFINDER_API_KEY is not configured, auth is skipped (local dev mode).
-    """
-    if not config.WAYFINDER_API_KEY:
-        return  # no key configured → open (local dev)
-    provided = (
-        request.headers.get("X-API-Key", "")
-        or request.query_params.get("key", "")
-    )
-    if provided != config.WAYFINDER_API_KEY:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or missing API key. Set X-API-Key header or ?key= param.",
-        )
-
-
 # ── Public endpoints ───────────────────────────────────────────────────────────
 
 _FRONTEND_PATH = Path(__file__).parent / "frontend" / "index.html"
@@ -139,7 +107,7 @@ class ResearchRequest(BaseModel):
     question: str
 
 
-@app.post("/research", dependencies=[Depends(require_api_key)])
+@app.post("/research")
 async def start_research(req: ResearchRequest):
     question = req.question.strip()
     if not question:
@@ -163,7 +131,7 @@ async def start_research(req: ResearchRequest):
     return {"task_id": task_id}
 
 
-@app.get("/stream/{task_id}", dependencies=[Depends(require_api_key)])
+@app.get("/stream/{task_id}")
 async def stream_events(task_id: str, request: Request):
     if task_id not in _task_queues:
         raise HTTPException(status_code=404, detail="Task not found.")
@@ -206,7 +174,7 @@ async def stream_events(task_id: str, request: Request):
     )
 
 
-@app.get("/history", dependencies=[Depends(require_api_key)])
+@app.get("/history")
 async def get_history(limit: int = 10):
     if _db_conn is None:
         return {"sessions": [], "memory_available": False}
