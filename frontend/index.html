@@ -1141,16 +1141,29 @@
       document.getElementById('auth-modal').style.display = 'none';
     }
 
-    document.getElementById('auth-save-btn').addEventListener('click', () => {
-      const k = document.getElementById('auth-key-input').value.trim();
-      if (!k) return;
-      setStoredKey(k);
-      hideAuthModal();
-      loadHistory();
-    });
+    // Defer auth modal wiring until after the modal HTML is rendered
+    document.addEventListener('DOMContentLoaded', () => {
+      const authSaveBtn = document.getElementById('auth-save-btn');
+      const authKeyInput = document.getElementById('auth-key-input');
 
-    document.getElementById('auth-key-input').addEventListener('keydown', e => {
-      if (e.key === 'Enter') document.getElementById('auth-save-btn').click();
+      if (authSaveBtn) {
+        authSaveBtn.addEventListener('click', () => {
+          const k = authKeyInput ? authKeyInput.value.trim() : '';
+          if (!k) return;
+          setStoredKey(k);
+          hideAuthModal();
+          loadHistory();
+        });
+      }
+
+      if (authKeyInput) {
+        authKeyInput.addEventListener('keydown', e => {
+          if (e.key === 'Enter' && authSaveBtn) authSaveBtn.click();
+        });
+      }
+
+      ensureAuth().then(() => loadHistory());
+      qInput.focus();
     });
 
     // ── Start research ────────────────────────────────────────────────────────
@@ -1304,9 +1317,6 @@
         .replace(/'/g, '&#39;');
     }
 
-    // ── Init ──────────────────────────────────────────────────────────────────
-    ensureAuth().then(() => loadHistory());
-    qInput.focus();
   </script>
 
   <!-- Auth modal -->

@@ -19,11 +19,14 @@ class Message(BaseModel):
 
 class LLMRequest(BaseModel):
     messages: List[Message]
-    tools: List[dict]
+    tools: List[Any]          # Provider-native format; kept as Any to avoid coupling Layer 1 to SDK types
     system: str
     max_tokens: int
     temperature: float
     stop_sequences: List[str]
+
+    model_config = {"arbitrary_types_allowed": True}
+
 
 class LLMResponse(BaseModel):
     content: str

@@ -20,6 +20,7 @@ async def run_sequential_agent(
     skill_domain: str,
     role_prompt: str,
     telemetry: TelemetryHub,
+    track_id: str,          # Passed in from main.py so frontend can subscribe by the same ID
     max_steps: int = 15
 ) -> AgentRunResult:
     
@@ -29,7 +30,7 @@ async def run_sequential_agent(
     # Optional skills depending on whether they are registered
     skills = SkillRegistry.get_by_domain(skill_domain) if skill_domain else []
 
-    track_id = str(uuid.uuid4())
+    # Use the provided track_id so the frontend subscription matches
     working_memory = WorkingMemory()
     episodic_memory = EpisodicMemory()
     governor = IterationGovernor(max_steps=max_steps, timeout_seconds=120)

@@ -73,23 +73,27 @@ async def start_research(req: ResearchRequest):
 
     task_id = str(uuid.uuid4())
     
-    # Run the orchestrator in the background
     async def bg_task():
         try:
-            # We assume "gemini" is registered in ProviderRegistry and tools are in ToolRegistry
-            # In a full implementation, these would be initialized at app startup.
             result = await run_sequential_agent(
                 prompt=question,
-                provider_id="gemini", # Stub provider id
-                tool_categories=["search"], # Stub scope
+                provider_id="gemini",
+                tool_categories=["search"],
                 skill_domain="",
-                role_prompt="You are a research agent.",
-                telemetry=telemetry_hub
+                role_prompt=(
+                    "You are Wayfinder, a precise and diligent web research agent.\n"
+                    "Your job is to answer the user's question by searching the web methodically\n"
+                    "and synthesising what you find — not by recalling training data.\n\n"
+                    "Always use web_search to look up current information before answering.\n"
+                    "When you have enough evidence, produce your Final Answer."
+                ),
+                telemetry=telemetry_hub,
+                track_id=task_id,   # ← same ID the frontend subscribes to
             )
             log.info(f"Task {task_id} completed. Success: {result.success}")
         except Exception as e:
             log.exception(f"Error in agent execution for task {task_id}")
-            
+
     asyncio.create_task(bg_task())
     return {"task_id": task_id}
 
