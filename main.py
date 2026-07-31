@@ -8,11 +8,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import config
+import datetime
 # Assuming concrete implementations for the new architecture are written in future steps
 from core.provider import ProviderRegistry
 from core.tools import ToolRegistry, ToolDefinition
 from core.skills import SkillRegistry
-from observability.telemetry import TelemetryHub
+from observability.telemetry import TelemetryHub, TelemetryEvent, Payload
 from orchestration.topologies import run_sequential_agent
 
 from providers.gemini import GeminiProvider
@@ -93,6 +94,19 @@ async def start_research(req: ResearchRequest):
             log.info(f"Task {task_id} completed. Success: {result.success}")
         except Exception as e:
             log.exception(f"Error in agent execution for task {task_id}")
+            # Emit an error event so the frontend UI doesn't hang indefinitely waiting for completion
+            asyncio.create_task(telemetry_hub.emit(TelemetryEvent(
+                event_id=str(uuid.uuid4()),
+                timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                track_id=task_id,
+                parent_track_id=None,
+                track_type="root",
+                source_type="system",
+                payload=Payload(
+                    type="error_event",
+                    error={"message": f"Execution failed: {str(e)}", "code": "system_error"}
+                )
+            )))
 
     asyncio.create_task(bg_task())
     return {"task_id": task_id}
