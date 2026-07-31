@@ -32,7 +32,7 @@ app.add_middleware(
 )
 
 # ── Register Components ────────────────────────────────────────────────────────
-ProviderRegistry.register("gemini", GeminiProvider(model_name="gemini-1.5-flash"))
+ProviderRegistry.register("gemini", GeminiProvider(model_name="gemini-3.6-flash"))
 
 ToolRegistry.register(ToolDefinition(
     name="web_search",
