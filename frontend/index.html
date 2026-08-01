@@ -765,11 +765,87 @@
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUpFade { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 9998;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .sidebar-backdrop.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
     @media (max-width: 780px) {
-      .app { grid-template-columns: 0 1fr; }
-      .left-panel { display: none; }
-      .hero-preloader { padding: 40px 20px 60px; }
-      .research-view { padding: 20px 16px 40px; }
+      .app { grid-template-columns: 1fr; }
+      .left-panel {
+        position: fixed;
+        top: 0; left: 0; bottom: 0;
+        width: 280px;
+        z-index: 9999;
+        background: var(--bg-surface);
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 4px 0 32px rgba(0,0,0,0.6);
+        display: flex;
+      }
+      .left-panel.open {
+        transform: translateX(0);
+      }
+      .sidebar-backdrop {
+        display: block;
+      }
+      .mobile-menu-btn {
+        display: inline-flex !important;
+      }
+      .hero-preloader { padding: 48px 16px 60px; }
+      .hero-heading { font-size: 2.1rem; }
+      .hero-search-area { width: 100%; }
+      .hero-search-box, .top-bar {
+        gap: 4px;
+        padding: 4px 8px;
+      }
+      .input-action-btn {
+        font-size: 16px;
+        min-width: 32px;
+        height: 32px;
+        padding: 0;
+        flex-shrink: 0;
+      }
+      #hero-submit-btn, #submit-btn {
+        padding: 7px 12px;
+        font-size: 12px;
+        flex-shrink: 0;
+      }
+      .capability-row {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+      }
+      .capability-pill {
+        font-size: 11px;
+        padding: 4px 10px;
+      }
+      .suggestion-chips {
+        justify-content: center;
+      }
+      .research-view { padding: 16px 12px 40px; }
+    }
+
+    @media (max-width: 480px) {
+      .hero-heading { font-size: 1.8rem; }
+      .hero-sub { font-size: 13px; }
+      #hero-question-input, #question-input { font-size: 13px; }
+      .marketing-title { font-size: 32px !important; }
+      .marketing-subtitle { font-size: 14.5px !important; }
+      .marketing-nav { padding: 16px; }
+      .marketing-cta-btn.large { padding: 12px 24px; font-size: 14.5px; }
     }
 
     /* ====== MARKETING OVERLAY ====== */
@@ -1028,8 +1104,11 @@
 
 <div class="app">
 
+  <!-- Mobile Sidebar Backdrop Overlay -->
+  <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="toggleMobileSidebar()"></div>
+
   <!-- Left Panel -->
-  <div class="left-panel">
+  <div class="left-panel" id="left-panel">
     <div class="agent-brand">
       <div class="agent-logo">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1038,15 +1117,16 @@
           <polygon points="12,21 9,12 12,14 15,12" fill="white" opacity="0.5"/>
         </svg>
       </div>
-      <div>
+      <div style="flex: 1;">
         <div class="agent-name">Wayfinder</div>
         <div class="agent-tagline">research agent</div>
       </div>
+      <button type="button" class="input-action-btn mobile-menu-btn" onclick="toggleMobileSidebar()" style="display:none; font-size:18px;" title="Close Menu">&times;</button>
     </div>
 
     <div class="sessions-header">
       <span class="sessions-label">Sessions</span>
-      <div class="new-session-btn" onclick="goHome()" title="New session">+</div>
+      <div class="new-session-btn" onclick="goHome(); toggleMobileSidebar(false);" title="New session">+</div>
     </div>
 
     <div id="history-list">
@@ -1066,15 +1146,20 @@
   <!-- Main Area -->
   <div class="main-area" style="position: relative;">
 
-    <!-- Theme Picker -->
-    <div style="position: absolute; top: 16px; right: 24px; z-index: 100;">
-      <button id="theme-toggle-btn" style="background: var(--bg-surface); border: 1px solid var(--border-mid); color: var(--text-secondary); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.2s;" onclick="document.getElementById('theme-menu').style.display = document.getElementById('theme-menu').style.display === 'block' ? 'none' : 'block'">
-        &#x2600;
+    <!-- Mobile Top Navigation Header -->
+    <div style="position: absolute; top: 12px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: center; z-index: 100; pointer-events: none;">
+      <button type="button" class="input-action-btn mobile-menu-btn" onclick="toggleMobileSidebar()" style="display: none; pointer-events: auto; background: var(--bg-surface); border: 1px solid var(--border-mid); border-radius: 8px; width: 34px; height: 34px; font-size: 16px;" title="Open Sessions">
+        &#x2630;
       </button>
-      <div id="theme-menu" style="display: none; position: absolute; top: 40px; right: 0; background: var(--bg-surface); border: 1px solid var(--border-mid); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); padding: 6px; width: 120px; font-size: 13px;">
-        <div style="padding: 6px 12px; cursor: pointer; color: var(--text-primary); border-radius: 4px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'" onclick="setTheme('light')">Light</div>
-        <div style="padding: 6px 12px; cursor: pointer; color: var(--text-primary); border-radius: 4px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'" onclick="setTheme('dark')">Dark</div>
-        <div style="padding: 6px 12px; cursor: pointer; color: var(--text-primary); border-radius: 4px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'" onclick="setTheme('system')">System</div>
+      <div style="margin-left: auto; position: relative; pointer-events: auto;">
+        <button id="theme-toggle-btn" style="background: var(--bg-surface); border: 1px solid var(--border-mid); color: var(--text-secondary); width: 34px; height: 34px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.2s;" onclick="document.getElementById('theme-menu').style.display = document.getElementById('theme-menu').style.display === 'block' ? 'none' : 'block'">
+          &#x2600;
+        </button>
+        <div id="theme-menu" style="display: none; position: absolute; top: 42px; right: 0; background: var(--bg-surface); border: 1px solid var(--border-mid); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); padding: 6px; width: 120px; font-size: 13px; z-index: 1001;">
+          <div style="padding: 6px 12px; cursor: pointer; color: var(--text-primary); border-radius: 4px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'" onclick="setTheme('light')">Light</div>
+          <div style="padding: 6px 12px; cursor: pointer; color: var(--text-primary); border-radius: 4px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'" onclick="setTheme('dark')">Dark</div>
+          <div style="padding: 6px 12px; cursor: pointer; color: var(--text-primary); border-radius: 4px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'" onclick="setTheme('system')">System</div>
+        </div>
       </div>
     </div>
 
@@ -1082,6 +1167,7 @@
     <input type="file" id="global-file-input" multiple accept=".pdf,.docx,.txt,.md,.json,.csv" style="display:none;" onchange="handleFileSelect(event)" />
 
     <div class="top-bar" id="topbar">
+      <button type="button" class="input-action-btn mobile-menu-btn" onclick="toggleMobileSidebar()" style="display:none; font-size:16px;" title="Open Sessions">&#x2630;</button>
       <button type="button" class="input-action-btn" onclick="triggerFileUpload()" title="Attach document (PDF, Word, TXT)">&#x1F4CE;</button>
       <button type="button" class="input-action-btn voice-btn" onclick="toggleVoiceSearch()" title="Voice search">&#x1F399;&#xFE0F;</button>
       <input id="question-input" type="text" placeholder="Ask a follow-up or new question&#x2026;" autocomplete="off" spellcheck="true" />
@@ -1542,9 +1628,26 @@
     }
   }
 
-  // Voice Search (Speech to Text)
+  // Mobile Sidebar Drawer Toggle
+  function toggleMobileSidebar(forceState) {
+    const sidebar = document.getElementById('left-panel');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    if (!sidebar || !backdrop) return;
+
+    const shouldOpen = typeof forceState === 'boolean' ? forceState : !sidebar.classList.contains('open');
+    if (shouldOpen) {
+      sidebar.classList.add('open');
+      backdrop.classList.add('visible');
+    } else {
+      sidebar.classList.remove('open');
+      backdrop.classList.remove('visible');
+    }
+  }
+
+  // Voice Search (Speech to Text) with Auto-Execute on End
   let recognition = null;
   let isListening = false;
+  let silenceTimer = null;
 
   function toggleVoiceSearch() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1556,6 +1659,7 @@
     const voiceBtns = document.querySelectorAll('.voice-btn');
 
     if (isListening && recognition) {
+      clearTimeout(silenceTimer);
       recognition.stop();
       return;
     }
@@ -1568,7 +1672,7 @@
     recognition.onstart = function() {
       isListening = true;
       voiceBtns.forEach(btn => btn.classList.add('recording'));
-      setStatus('working', 'Listening\u2026');
+      setStatus('working', 'Listening\u2026 speak now');
     };
 
     recognition.onresult = function(event) {
@@ -1576,21 +1680,46 @@
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         transcript += event.results[i][0].transcript;
       }
-      if (heroQInput) heroQInput.value = transcript;
-      if (qInput) qInput.value = transcript;
+      
+      const isHeroVisible = heroPreloader && heroPreloader.style.display !== 'none';
+      if (isHeroVisible && heroQInput) {
+        heroQInput.value = transcript;
+      } else if (qInput) {
+        qInput.value = transcript;
+      }
+
+      // Reset silence timer on every new speech chunk
+      clearTimeout(silenceTimer);
+      silenceTimer = setTimeout(() => {
+        if (isListening && recognition) {
+          recognition.stop();
+        }
+      }, 1500); // 1.5s of silence triggers completion
     };
 
     recognition.onerror = function(event) {
       console.warn('Speech recognition error:', event.error);
+      clearTimeout(silenceTimer);
       isListening = false;
       voiceBtns.forEach(btn => btn.classList.remove('recording'));
       setStatus('idle', 'Ready');
     };
 
     recognition.onend = function() {
+      clearTimeout(silenceTimer);
       isListening = false;
       voiceBtns.forEach(btn => btn.classList.remove('recording'));
       setStatus('idle', 'Ready');
+
+      // Once user is done talking, automatically launch the research agent!
+      const isHeroVisible = heroPreloader && heroPreloader.style.display !== 'none';
+      const currentVal = isHeroVisible ? (heroQInput ? heroQInput.value.trim() : '') : (qInput ? qInput.value.trim() : '');
+
+      if (currentVal.length > 0 || attachedFiles.length > 0) {
+        setTimeout(() => {
+          startResearch(isHeroVisible);
+        }, 300);
+      }
     };
 
     recognition.start();
