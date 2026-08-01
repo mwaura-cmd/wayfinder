@@ -809,11 +809,17 @@
           <div class="capability-pill"><span class="pill-icon">&#x26A1;</span> Streamed results</div>
         </div>
 
-        <div class="hero-search-area">
+        <div class="hero-search-area" id="hero-search-area" style="display: none;">
           <div class="hero-search-box">
             <input id="hero-question-input" type="text" placeholder="What do you want to research?" autocomplete="off" spellcheck="true" />
             <button id="hero-submit-btn">Start Research &#x2197;</button>
           </div>
+        </div>
+
+        <div class="hero-cta-area" id="hero-cta-area" style="display: none; width: 100%; max-width: 640px; margin-top: 10px; justify-content: center; opacity: 0; animation: slideUpFade 0.45s var(--ease-out) 0.6s forwards;">
+          <button id="hero-get-started-btn" style="background:var(--accent); border:none; border-radius:8px; padding:14px 32px; color:white; font-family:var(--font-sans); font-size:15px; font-weight:600; cursor:pointer; transition:opacity 0.15s, transform 0.1s; box-shadow: 0 4px 14px rgba(99,102,241,0.3);" onmouseover="this.style.opacity='0.9'; this.style.transform='translateY(-1px)'" onmouseout="this.style.opacity='1'; this.style.transform='none'">
+            Get started for free
+          </button>
         </div>
 
         <div class="hero-chips-area">
@@ -1134,7 +1140,12 @@
 
   document.addEventListener('DOMContentLoaded', function() {
     // UI setup is handled by Firebase onAuthStateChanged
-    heroQInput.focus();
+    var getStartedBtn = document.getElementById('hero-get-started-btn');
+    if (getStartedBtn) {
+      getStartedBtn.addEventListener('click', function() {
+        showAuthModal();
+      });
+    }
   });
 
   async function startResearch(isFromHero) {
@@ -1316,10 +1327,14 @@
         window.currentIdToken = await user.getIdToken();
         window.hideAuthModal();
         window.loadHistory();
+        document.getElementById('hero-search-area').style.display = 'block';
+        document.getElementById('hero-cta-area').style.display = 'none';
+        document.getElementById('hero-question-input').focus();
       } else {
         // Logged out
         window.currentIdToken = '';
-        window.showAuthModal();
+        document.getElementById('hero-search-area').style.display = 'none';
+        document.getElementById('hero-cta-area').style.display = 'flex';
       }
     });
 
