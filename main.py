@@ -2,7 +2,7 @@ import asyncio
 import logging
 import uuid
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -15,6 +15,10 @@ from core.tools import ToolRegistry, ToolDefinition
 from core.skills import SkillRegistry
 from observability.telemetry import TelemetryHub, TelemetryEvent, Payload
 from orchestration.topologies import run_sequential_agent
+from core.firebase import get_db
+from firebase_admin import firestore
+from core.memory import FirebaseSemanticMemoryStore
+from core.auth import get_current_user
 
 from providers.openrouter import OpenRouterProvider
 from tools.tavily import TavilySearchExecutor
@@ -67,7 +71,7 @@ class ResearchRequest(BaseModel):
     question: str
 
 @app.post("/research")
-async def start_research(req: ResearchRequest):
+async def start_research(req: ResearchRequest, uid: str = Depends(get_current_user)):
     question = req.question.strip()
     if not question:
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
@@ -92,6 +96,32 @@ async def start_research(req: ResearchRequest):
                 track_id=task_id,   # ← same ID the frontend subscribes to
             )
             log.info(f"Task {task_id} completed. Success: {result.success}")
+            
+            # Save session to Firestore
+            db = get_db()
+            if db:
+                try:
+                    db.collection("sessions").document(task_id).set({
+                        "task_id": task_id,
+                        "question": question,
+                        "success": result.success,
+                        "final_answer": result.output,
+                        "created_at": firestore.SERVER_TIMESTAMP,
+                        "uid": uid,
+                    })
+                    log.info(f"Task {task_id} saved to Firestore sessions collection for user {uid}.")
+                    
+                    # Also save to semantic memory for future retrieval
+                    semantic_store = FirebaseSemanticMemoryStore()
+                    await semantic_store.store(
+                        key=task_id,
+                        content=result.output,
+                        metadata={"question": question, "task_id": task_id, "uid": uid}
+                    )
+                    log.info(f"Task {task_id} saved to semantic memory.")
+                except Exception as db_err:
+                    log.error(f"Failed to save session {task_id} to Firestore: {db_err}")
+                    
         except Exception as e:
             log.exception(f"Error in agent execution for task {task_id}")
             # Emit an error event so the frontend UI doesn't hang indefinitely waiting for completion
@@ -119,5 +149,27 @@ async def stream_events(task_id: str, request: Request):
     )
 
 @app.get("/history")
-async def get_history(limit: int = 10):
-    return {"sessions": [], "message": "Semantic memory not yet fully wired for global history"}
+async def get_history(limit: int = 10, uid: str = Depends(get_current_user)):
+    db = get_db()
+    if not db:
+        return {"sessions": [], "message": "Firebase not initialized. Semantic memory offline."}
+    
+    try:
+        # Filter by uid and order by created_at descending
+        docs = db.collection("sessions")\
+            .where("uid", "==", uid)\
+            .order_by("created_at", direction=firestore.Query.DESCENDING)\
+            .limit(limit).stream()
+        sessions = []
+        for doc in docs:
+            data = doc.to_dict()
+            # Convert timestamp to ISO string if present
+            created_at = data.get("created_at")
+            if created_at and hasattr(created_at, "isoformat"):
+                data["created_at"] = created_at.isoformat()
+            sessions.append(data)
+            
+        return {"sessions": sessions, "message": "Success"}
+    except Exception as e:
+        log.error(f"Error fetching history from Firestore: {e}")
+        return {"sessions": [], "message": f"Error fetching history: {e}"}

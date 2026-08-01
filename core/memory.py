@@ -101,3 +101,47 @@ class SemanticMemoryStore:
 
     async def delete(self, key: str) -> None:
         raise NotImplementedError
+
+class FirebaseSemanticMemoryStore(SemanticMemoryStore):
+    def __init__(self):
+        # Import lazily to avoid circular imports or fast failure if Firebase isn't set up
+        from core.firebase import get_db
+        self.db = get_db()
+        self.collection = "semantic_memory"
+
+    async def store(self, key: str, content: str, metadata: dict) -> None:
+        if not self.db:
+            return
+        from firebase_admin import firestore
+        doc_ref = self.db.collection(self.collection).document(key)
+        # Note: In a real app we might use asyncio.to_thread for synchronous firebase-admin calls
+        doc_ref.set({
+            "content": content,
+            "metadata": metadata,
+            # Timestamp to allow querying by recency
+            "updated_at": firestore.SERVER_TIMESTAMP
+        })
+
+    async def retrieve(self, query: str, top_k: int) -> List[MemoryChunk]:
+        # Semantic search typically requires vector embeddings (e.g. Pinecone/pgvector)
+        # For this basic Firebase integration, we do a simple prefix query or return recent items
+        if not self.db:
+            return []
+        
+        # Fallback to returning latest documents if no advanced search is configured
+        docs = self.db.collection(self.collection).limit(top_k).stream()
+        chunks = []
+        for doc in docs:
+            data = doc.to_dict()
+            chunks.append(MemoryChunk(
+                key=doc.id,
+                content=data.get("content", ""),
+                metadata=data.get("metadata", {})
+            ))
+        return chunks
+
+    async def delete(self, key: str) -> None:
+        if not self.db:
+            return
+        self.db.collection(self.collection).document(key).delete()
+

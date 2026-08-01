@@ -1116,44 +1116,24 @@
       '</div>';
   }
 
-  var AUTH_KEY = 'wayfinder_api_key';
-  function getStoredKey() { return localStorage.getItem(AUTH_KEY) || ''; }
-  function setStoredKey(k) { localStorage.setItem(AUTH_KEY, k); }
-  function authHeaders() {
-    var k = getStoredKey();
-    return k ? { 'X-API-Key': k } : {};
-  }
+  window.currentIdToken = '';
 
-  async function ensureAuth() {
-    if (getStoredKey()) return;
-    var probe = await fetch('/health').catch(function() { return null; });
-    if (!probe) return;
-    var test = await fetch('/history?limit=1', { headers: authHeaders() }).catch(function() { return null; });
-    if (test && test.status === 401) showAuthModal();
+  function authHeaders() {
+    return window.currentIdToken ? { 'Authorization': 'Bearer ' + window.currentIdToken } : {};
   }
 
   function showAuthModal() {
     document.getElementById('auth-modal').style.display = 'flex';
-    document.getElementById('auth-key-input').focus();
   }
-  function hideAuthModal() { document.getElementById('auth-modal').style.display = 'none'; }
+  function hideAuthModal() { 
+    document.getElementById('auth-modal').style.display = 'none'; 
+  }
+
+  // Define ensureAuth as a no-op initially until Firebase is ready
+  async function ensureAuth() {}
 
   document.addEventListener('DOMContentLoaded', function() {
-    var authSaveBtn  = document.getElementById('auth-save-btn');
-    var authKeyInput = document.getElementById('auth-key-input');
-    if (authSaveBtn) {
-      authSaveBtn.addEventListener('click', function() {
-        var k = authKeyInput ? authKeyInput.value.trim() : '';
-        if (!k) return;
-        setStoredKey(k); hideAuthModal(); loadHistory();
-      });
-    }
-    if (authKeyInput) {
-      authKeyInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && authSaveBtn) authSaveBtn.click();
-      });
-    }
-    ensureAuth().then(function() { loadHistory(); });
+    // UI setup is handled by Firebase onAuthStateChanged
     heroQInput.focus();
   });
 
@@ -1191,9 +1171,11 @@
 
       var data = await res.json();
       var task_id = data.task_id;
-      var streamKey = getStoredKey();
-      var streamUrl = streamKey
-        ? '/stream/' + task_id + '?key=' + encodeURIComponent(streamKey)
+      // Note: EventSource doesn't support custom headers. 
+      // Passing token as query param so backend could technically verify, 
+      // but in this version /stream/{task_id} is unprotected because task_id is a secure UUID capability URL.
+      var streamUrl = window.currentIdToken
+        ? '/stream/' + task_id + '?token=' + encodeURIComponent(window.currentIdToken)
         : '/stream/' + task_id;
 
       var evtSource = new EventSource(streamUrl);
@@ -1306,16 +1288,75 @@
   }
 </script>
 
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import { 
+    getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword 
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAK1FLL6khYHL5zdsrL1-RmDdOi9ZTiz6U",
+    authDomain: "wayfinder-b98c7.firebaseapp.com",
+    databaseURL: "https://wayfinder-b98c7-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "wayfinder-b98c7",
+    storageBucket: "wayfinder-b98c7.firebasestorage.app",
+    messagingSenderId: "922347923833",
+    appId: "1:922347923833:web:a4c92136e619d59be067a8"
+  };
+
+  try {
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    window.firebaseAuth = auth;
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Logged in
+        window.currentIdToken = await user.getIdToken();
+        window.hideAuthModal();
+        window.loadHistory();
+      } else {
+        // Logged out
+        window.currentIdToken = '';
+        window.showAuthModal();
+      }
+    });
+
+    document.getElementById('login-btn').addEventListener('click', () => {
+      const email = document.getElementById('auth-email').value;
+      const pass = document.getElementById('auth-password').value;
+      signInWithEmailAndPassword(auth, email, pass).catch(err => alert("Login failed: " + err.message));
+    });
+
+    document.getElementById('signup-btn').addEventListener('click', () => {
+      const email = document.getElementById('auth-email').value;
+      const pass = document.getElementById('auth-password').value;
+      createUserWithEmailAndPassword(auth, email, pass).catch(err => alert("Signup failed: " + err.message));
+    });
+
+  } catch (e) {
+    console.error("Firebase Initialization Error:", e);
+    alert("Firebase is not configured! Please update frontend/index.html with your firebaseConfig.");
+  }
+</script>
+
 <!-- Auth modal -->
 <div id="auth-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
   <div style="background:#18191d;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:32px;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,0.7);font-family:'Inter',sans-serif;">
     <div style="font-size:2rem;margin-bottom:12px;">&#x1F511;</div>
-    <div style="font-size:15px;font-weight:700;color:#e8eaf0;margin-bottom:6px;">Access key required</div>
+    <div style="font-size:15px;font-weight:700;color:#e8eaf0;margin-bottom:6px;">Authentication Required</div>
     <div style="font-size:12.5px;color:#9095a8;margin-bottom:22px;line-height:1.7;">
-      This Wayfinder instance is protected. Enter the <code style="background:#1e2028;padding:1px 6px;border-radius:5px;color:#fb923c;font-family:'JetBrains Mono',monospace;">WAYFINDER_API_KEY</code> you set in your Render dashboard.
+      Log in or create an account to start your research session.
     </div>
-    <input id="auth-key-input" type="password" placeholder="Enter your access key&#x2026;" style="width:100%;background:#1e2028;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;color:#e8eaf0;font-family:'Inter',sans-serif;font-size:13.5px;outline:none;margin-bottom:12px;transition:border-color 0.15s;" onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'" />
-    <button id="auth-save-btn" style="width:100%;background:#6366f1;border:none;border-radius:8px;padding:11px;color:white;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Save &amp; Continue</button>
+    
+    <input id="auth-email" type="email" placeholder="Email Address" style="width:100%;background:#1e2028;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;color:#e8eaf0;font-family:'Inter',sans-serif;font-size:13.5px;outline:none;margin-bottom:12px;transition:border-color 0.15s;" onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'" />
+    <input id="auth-password" type="password" placeholder="Password" style="width:100%;background:#1e2028;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;color:#e8eaf0;font-family:'Inter',sans-serif;font-size:13.5px;outline:none;margin-bottom:24px;transition:border-color 0.15s;" onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'" />
+    
+    <div style="display:flex;gap:12px;">
+      <button id="login-btn" style="flex:1;background:#6366f1;border:none;border-radius:8px;padding:11px;color:white;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Log In</button>
+      <button id="signup-btn" style="flex:1;background:var(--bg-elevated);border:1px solid var(--border-mid);border-radius:8px;padding:11px;color:white;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border-mid)'">Sign Up</button>
+    </div>
   </div>
 </div>
 

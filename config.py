@@ -20,6 +20,15 @@ if _ENV_FILE.exists():
             if _key and _val and _key not in os.environ:
                 os.environ[_key] = _val
 
+# ── Firebase ──────────────────────────────────────────────────────────────────
+# Place your firebase-adminsdk.json inside the root directory, or
+# paste the raw JSON string into the FIREBASE_CREDENTIALS_JSON env variable.
+FIREBASE_CREDENTIALS_PATH: str = os.environ.get(
+    "FIREBASE_CREDENTIALS_PATH",
+    str(Path(__file__).parent / "firebase-adminsdk.json")
+)
+FIREBASE_CREDENTIALS_JSON: str = os.environ.get("FIREBASE_CREDENTIALS_JSON", "")
+
 # ── LLM — OpenRouter ──────────────────────────────────────────────────────────
 # Sign up at https://openrouter.ai and grab a free API key.
 # Set OPENROUTER_API_KEY in your .env (local) or Render dashboard (prod).
