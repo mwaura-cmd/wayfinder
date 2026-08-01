@@ -27,9 +27,8 @@ if _ENV_FILE.exists():
 OPENROUTER_API_KEY: str = os.environ.get("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL: str = os.environ.get(
     "OPENROUTER_MODEL",
-    "meta-llama/llama-3.1-8b-instruct:free",          # completely free tier model
+    "openrouter/free",          # Auto-routes to available free models
 )
-OPENROUTER_FALLBACK_MODEL: str = "meta-llama/llama-3.1-8b-instruct:free"
 
 # ── Search ────────────────────────────────────────────────────────────────────
 TAVILY_API_KEY: str = os.environ.get("TAVILY_API_KEY", "")

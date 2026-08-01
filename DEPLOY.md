@@ -61,7 +61,8 @@ In the Render dashboard → your service → **Environment** tab:
 
 | Variable | Value |
 |----------|-------|
-| `GEMINI_API_KEY` | Your Gemini key from [aistudio.google.com](https://aistudio.google.com/app/apikey) |
+| `OPENROUTER_API_KEY` | Your OpenRouter key from [openrouter.ai/keys](https://openrouter.ai/keys) |
+| `OPENROUTER_MODEL` | `openrouter/free` (optional, defaults to auto-routing free tier) |
 | `TAVILY_API_KEY` | Your Tavily key from [app.tavily.com](https://app.tavily.com) |
 | `WAYFINDER_API_KEY` | The random key you generated in Step 2 |
 | `MAX_MEMORY_SESSIONS` | `200` (optional, this is the default) |
