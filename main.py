@@ -70,21 +70,68 @@ async def serve_frontend():
 async def health():
     return {"status": "ok", "version": "2.0"}
 
+import base64
+import io
+from typing import Optional, List
+
+def extract_text_from_attachment(name: str, file_type: str, data: str) -> str:
+    try:
+        # If it's a data URL, strip the prefix
+        if "," in data:
+            data = data.split(",", 1)[1]
+        raw_bytes = base64.b64decode(data)
+        if name.lower().endswith('.pdf') or 'pdf' in file_type.lower():
+            try:
+                import pypdf
+                reader = pypdf.PdfReader(io.BytesIO(raw_bytes))
+                text = "\n".join([page.extract_text() or "" for page in reader.pages])
+                return f"\n--- Attached Document: {name} ---\n{text.strip()}\n"
+            except Exception as pdf_err:
+                return f"\n--- Attached Document: {name} (PDF parsing error: {pdf_err}) ---\n"
+        elif name.lower().endswith('.docx') or 'word' in file_type.lower():
+            try:
+                import docx
+                doc = docx.Document(io.BytesIO(raw_bytes))
+                text = "\n".join([p.text for p in doc.paragraphs])
+                return f"\n--- Attached Document: {name} ---\n{text.strip()}\n"
+            except Exception as docx_err:
+                return f"\n--- Attached Document: {name} (DOCX parsing error: {docx_err}) ---\n"
+        else:
+            text = raw_bytes.decode('utf-8', errors='replace')
+            return f"\n--- Attached Document: {name} ---\n{text.strip()}\n"
+    except Exception as e:
+        log.error(f"Error parsing attachment {name}: {e}")
+        return f"\n--- Attached Document: {name} (Failed to parse: {e}) ---\n"
+
+class FileAttachment(BaseModel):
+    name: str
+    type: str
+    data: str
+
 class ResearchRequest(BaseModel):
     question: str
+    attachments: Optional[List[FileAttachment]] = None
 
 @app.post("/research")
 async def start_research(req: ResearchRequest, uid: str = Depends(get_current_user)):
     question = req.question.strip()
+    if not question and not req.attachments:
+        raise HTTPException(status_code=400, detail="Question or attachments required.")
+
     if not question:
-        raise HTTPException(status_code=400, detail="Question cannot be empty.")
+        question = "Analyze and summarize the attached document(s)."
+
+    full_prompt = question
+    if req.attachments:
+        attached_text = "".join([extract_text_from_attachment(att.name, att.type, att.data) for att in req.attachments])
+        full_prompt = f"{question}\n\n[USER ATTACHMENTS / CONTEXT]\n{attached_text}"
 
     task_id = str(uuid.uuid4())
     
     async def bg_task():
         try:
             result = await run_sequential_agent(
-                prompt=question,
+                prompt=full_prompt,
                 provider_id="openrouter",
                 tool_categories=["search"],
                 skill_domain="",
@@ -92,6 +139,7 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
                     "You are Wayfinder, a precise and diligent web research agent.\n"
                     "Your job is to answer the user's question by searching the web methodically\n"
                     "and synthesising what you find — not by recalling training data.\n\n"
+                    "If the user provides attached documents, incorporate their content into your analysis.\n"
                     "Always use web_search to look up current information before answering.\n"
                     "When you have enough evidence, produce your Final Answer."
                 ),

@@ -402,30 +402,63 @@
     #hero-submit-btn:active { transform: translateY(0); }
     #hero-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
-    .hero-chips-area {
-      width: 100%; max-width: 640px;
-      margin-top: 20px;
-      opacity: 0;
-      animation: slideUpFade 0.45s var(--ease-out) 0.85s forwards;
-    }
-    .chips-label {
-      font-size: 10.5px; font-weight: 600;
-      letter-spacing: 0.08em; text-transform: uppercase;
+    /* Action buttons & File upload styling */
+    .input-action-btn {
+      background: transparent;
+      border: none;
       color: var(--text-muted);
-      margin-bottom: 10px;
-    }
-    .suggestion-chips { display: flex; flex-wrap: wrap; gap: 7px; }
-    .chip {
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 5px 13px;
-      font-size: 12px;
-      color: var(--text-secondary);
       cursor: pointer;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      font-size: 16px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
     }
-    .chip:hover { background: var(--accent-dim); border-color: var(--accent); color: #a5b4fc; }
+    .input-action-btn:hover {
+      color: var(--text-primary);
+      background: var(--bg-hover);
+    }
+    .input-action-btn.recording {
+      color: #ef4444;
+      animation: pulse-mic 1.2s infinite;
+    }
+    @keyframes pulse-mic {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.18); opacity: 0.7; }
+    }
+    .attached-files-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .file-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 12px;
+      padding: 3px 10px;
+      font-size: 11.5px;
+      color: var(--text-primary);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      animation: fadeIn 0.2s ease;
+    }
+    .file-chip-remove {
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+    }
+    .file-chip-remove:hover {
+      color: #ef4444;
+    }
 
     /* ====== RESEARCH VIEW ====== */
     .research-view {
@@ -1045,10 +1078,16 @@
       </div>
     </div>
 
+    <!-- Hidden Global File Input -->
+    <input type="file" id="global-file-input" multiple accept=".pdf,.docx,.txt,.md,.json,.csv" style="display:none;" onchange="handleFileSelect(event)" />
+
     <div class="top-bar" id="topbar">
+      <button type="button" class="input-action-btn" onclick="triggerFileUpload()" title="Attach document (PDF, Word, TXT)">&#x1F4CE;</button>
+      <button type="button" class="input-action-btn voice-btn" onclick="toggleVoiceSearch()" title="Voice search">&#x1F399;&#xFE0F;</button>
       <input id="question-input" type="text" placeholder="Ask a follow-up or new question&#x2026;" autocomplete="off" spellcheck="true" />
       <button id="submit-btn">Research &#x2197;</button>
     </div>
+    <div id="topbar-attached-files" class="attached-files-container" style="padding: 0 20px; display: none;"></div>
 
     <div class="content-scroll" id="content-area">
 
@@ -1073,11 +1112,14 @@
           <div class="capability-pill"><span class="pill-icon">&#x26A1;</span> Streamed results</div>
         </div>
 
-        <div class="hero-search-area" id="hero-search-area" style="display: flex;">
-          <div class="hero-search-box">
+        <div class="hero-search-area" id="hero-search-area" style="display: flex; flex-direction: column; align-items: center;">
+          <div class="hero-search-box" style="width: 100%;">
+            <button type="button" class="input-action-btn" onclick="triggerFileUpload()" title="Attach document (PDF, Word, TXT)">&#x1F4CE;</button>
+            <button type="button" class="input-action-btn voice-btn" onclick="toggleVoiceSearch()" title="Voice search">&#x1F399;&#xFE0F;</button>
             <input id="hero-question-input" type="text" placeholder="What do you want to research?" autocomplete="off" spellcheck="true" />
             <button id="hero-submit-btn">Start Research &#x2197;</button>
           </div>
+          <div id="hero-attached-files" class="attached-files-container"></div>
         </div>
 
         <div class="hero-chips-area">
@@ -1441,12 +1483,125 @@
     });
   }
 
+  // Global Attachments and Voice Search Logic
+  let attachedFiles = [];
+
+  function triggerFileUpload() {
+    document.getElementById('global-file-input').click();
+  }
+
+  function handleFileSelect(e) {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    files.forEach(file => {
+      // Check for duplicates
+      if (attachedFiles.some(f => f.name === file.name && f.size === file.size)) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        attachedFiles.push({
+          name: file.name,
+          type: file.type || 'text/plain',
+          size: file.size,
+          data: evt.target.result
+        });
+        renderAttachedFiles();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    e.target.value = ''; // Reset input
+  }
+
+  function removeAttachedFile(idx) {
+    attachedFiles.splice(idx, 1);
+    renderAttachedFiles();
+  }
+
+  function renderAttachedFiles() {
+    const heroContainer = document.getElementById('hero-attached-files');
+    const topbarContainer = document.getElementById('topbar-attached-files');
+
+    const html = attachedFiles.map((file, idx) => {
+      let icon = '&#x1F4C4;';
+      if (file.name.endsWith('.pdf')) icon = '&#x1F4D5;';
+      else if (file.name.endsWith('.docx')) icon = '&#x1F4DD;';
+      
+      const sizeKb = Math.round(file.size / 1024);
+      return `<div class="file-chip">
+        <span>${icon} ${file.name} (${sizeKb}KB)</span>
+        <span class="file-chip-remove" onclick="removeAttachedFile(${idx})" title="Remove file">&times;</span>
+      </div>`;
+    }).join('');
+
+    if (heroContainer) heroContainer.innerHTML = html;
+    if (topbarContainer) {
+      topbarContainer.innerHTML = html;
+      topbarContainer.style.display = attachedFiles.length > 0 ? 'flex' : 'none';
+    }
+  }
+
+  // Voice Search (Speech to Text)
+  let recognition = null;
+  let isListening = false;
+
+  function toggleVoiceSearch() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Voice recognition is not supported in this browser. Try Google Chrome or Microsoft Edge.');
+      return;
+    }
+
+    const voiceBtns = document.querySelectorAll('.voice-btn');
+
+    if (isListening && recognition) {
+      recognition.stop();
+      return;
+    }
+
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = function() {
+      isListening = true;
+      voiceBtns.forEach(btn => btn.classList.add('recording'));
+      setStatus('working', 'Listening\u2026');
+    };
+
+    recognition.onresult = function(event) {
+      let transcript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        transcript += event.results[i][0].transcript;
+      }
+      if (heroQInput) heroQInput.value = transcript;
+      if (qInput) qInput.value = transcript;
+    };
+
+    recognition.onerror = function(event) {
+      console.warn('Speech recognition error:', event.error);
+      isListening = false;
+      voiceBtns.forEach(btn => btn.classList.remove('recording'));
+      setStatus('idle', 'Ready');
+    };
+
+    recognition.onend = function() {
+      isListening = false;
+      voiceBtns.forEach(btn => btn.classList.remove('recording'));
+      setStatus('idle', 'Ready');
+    };
+
+    recognition.start();
+  }
+
   // Define ensureAuth as a no-op initially until Firebase is ready
   async function ensureAuth() {}
 
   async function startResearch(isFromHero) {
     var question = isFromHero ? heroQInput.value.trim() : qInput.value.trim();
-    if (!question) { isFromHero ? heroQInput.focus() : qInput.focus(); return; }
+    if (!question && attachedFiles.length === 0) { isFromHero ? heroQInput.focus() : qInput.focus(); return; }
 
     if (currentEventSource) { currentEventSource.close(); currentEventSource = null; }
 
@@ -1457,13 +1612,16 @@
 
     qInput.value = question;
     setStatus('working', 'Researching\u2026');
-    resetUI(question);
+    resetUI(question || (attachedFiles.length ? "Document Analysis: " + attachedFiles.map(f => f.name).join(", ") : ""));
 
     try {
       var res = await fetch('/research', {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
-        body: JSON.stringify({ question: question }),
+        body: JSON.stringify({
+          question: question,
+          attachments: attachedFiles.map(f => ({ name: f.name, type: f.type, data: f.data }))
+        }),
       });
 
       if (res.status === 401) {
@@ -1478,6 +1636,10 @@
 
       var data = await res.json();
       var task_id = data.task_id;
+
+      // Clear attached files after starting
+      attachedFiles = [];
+      renderAttachedFiles();
       // Note: EventSource doesn't support custom headers. 
       // Passing token as query param so backend could technically verify, 
       // but in this version /stream/{task_id} is unprotected because task_id is a secure UUID capability URL.
