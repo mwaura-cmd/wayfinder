@@ -68,7 +68,6 @@
       width: 100vw;
     }
 
-    /* ====== LEFT PANEL ====== */
     .left-panel {
       grid-column: 1;
       grid-row: 1;
@@ -78,6 +77,9 @@
       flex-direction: column;
       overflow: hidden;
     }
+
+    .app.logged-out { grid-template-columns: 0 1fr; }
+    .app.logged-out .left-panel { display: none; }
 
     .agent-brand {
       padding: 20px 18px 16px;
@@ -1322,8 +1324,10 @@
     window.firebaseAuth = auth;
 
     onAuthStateChanged(auth, async (user) => {
+      const appEl = document.querySelector('.app');
       if (user) {
         // Logged in
+        appEl.classList.remove('logged-out');
         window.currentIdToken = await user.getIdToken();
         window.hideAuthModal();
         window.loadHistory();
@@ -1332,6 +1336,7 @@
         document.getElementById('hero-question-input').focus();
       } else {
         // Logged out
+        appEl.classList.add('logged-out');
         window.currentIdToken = '';
         document.getElementById('hero-search-area').style.display = 'none';
         document.getElementById('hero-cta-area').style.display = 'flex';
