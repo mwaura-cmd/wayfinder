@@ -1,4 +1,4 @@
-﻿import os
+import os
 import json
 import logging
 from pathlib import Path
@@ -13,7 +13,14 @@ if not firebase_admin._apps:
     try:
         # Priority 1: Check if credentials were provided as a JSON string (good for PaaS deployments)
         if config.FIREBASE_CREDENTIALS_JSON:
-            cert_dict = json.loads(config.FIREBASE_CREDENTIALS_JSON)
+            json_str = config.FIREBASE_CREDENTIALS_JSON.strip()
+            # Users often accidentally wrap the JSON string in quotes when pasting into cloud dashboards
+            if json_str.startswith("'") and json_str.endswith("'"):
+                json_str = json_str[1:-1]
+            elif json_str.startswith('"') and json_str.endswith('"'):
+                json_str = json_str[1:-1]
+                
+            cert_dict = json.loads(json_str)
             cred = credentials.Certificate(cert_dict)
             firebase_admin.initialize_app(cred)
             logger.info("Firebase initialized via JSON string.")
