@@ -823,6 +823,87 @@
     .feature-card p { color: var(--text-secondary); font-size: 14.5px; line-height: 1.5; }
     .marketing-footer { width: 100%; padding: 40px 24px; text-align: center; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; }
 
+    /* Parallax and Glow Effects */
+    #marketing-overlay {
+      --mouse-x: 50%;
+      --mouse-y: 50%;
+      --scroll-y: 0;
+    }
+    .marketing-hero {
+      transform: translateY(calc(var(--scroll-y) * 0.35px));
+    }
+    .hero-glow {
+      background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), rgba(167,139,250,0.15) 0%, rgba(0,0,0,0) 60%) !important;
+      transition: background 0.1s ease;
+    }
+    .feature-card {
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), rgba(255,255,255,0.08) 0%, transparent 80%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .feature-card:hover::before { opacity: 1; }
+
+    /* Modern Auth Modal */
+    .auth-modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      align-items: center; justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+    .auth-modal-box {
+      background: rgba(24, 25, 29, 0.85);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 36px 32px;
+      width: 100%; max-width: 400px;
+      box-shadow: 0 32px 100px rgba(0,0,0,0.8), 0 0 0 1px rgba(167,139,250,0.1) inset;
+      position: relative; overflow: hidden;
+      transform: translateY(20px);
+      animation: slideUpModal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes slideUpModal { to { transform: translateY(0); } }
+    .auth-modal-box::before {
+      content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+      background: radial-gradient(circle at top, rgba(167,139,250,0.15) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .auth-input {
+      width: 100%; background: rgba(30, 32, 40, 0.6);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
+      padding: 12px 16px; color: #e8eaf0; font-family: 'Inter', sans-serif;
+      font-size: 14px; outline: none; margin-bottom: 16px;
+      transition: all 0.2s ease;
+    }
+    .auth-input:focus {
+      background: rgba(30, 32, 40, 0.9);
+      border-color: rgba(167,139,250,0.5);
+      box-shadow: 0 0 0 3px rgba(167,139,250,0.15);
+    }
+    .auth-btn-primary {
+      flex: 1; background: linear-gradient(135deg, #60a5fa, #c084fc);
+      border: none; border-radius: 10px; padding: 12px; color: white;
+      font-weight: 600; cursor: pointer; transition: all 0.2s;
+      box-shadow: 0 4px 14px rgba(192,132,252,0.3);
+    }
+    .auth-btn-primary:hover {
+      box-shadow: 0 6px 20px rgba(192,132,252,0.4); filter: brightness(1.1);
+    }
+    .auth-btn-secondary {
+      flex: 1; background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+      padding: 12px; color: white; font-weight: 600; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .auth-btn-secondary:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+
     @media (max-width: 780px) {
       .marketing-title { font-size: 42px; }
       .marketing-subtitle { font-size: 16px; }
@@ -1326,6 +1407,21 @@
     else setTheme('system');
   })();
 
+  // Parallax and Mouse Tracking for UI Effects
+  const mktOverlay = document.getElementById('marketing-overlay');
+  if (mktOverlay) {
+    mktOverlay.addEventListener('mousemove', (e) => {
+      const rect = mktOverlay.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      mktOverlay.style.setProperty('--mouse-x', `${x}%`);
+      mktOverlay.style.setProperty('--mouse-y', `${y}%`);
+    });
+    mktOverlay.addEventListener('scroll', (e) => {
+      mktOverlay.style.setProperty('--scroll-y', mktOverlay.scrollTop);
+    });
+  }
+
   // Define ensureAuth as a no-op initially until Firebase is ready
   async function ensureAuth() {}
 
@@ -1548,29 +1644,29 @@
 </script>
 
 <!-- Auth modal -->
-<div id="auth-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
-  <div style="background:#18191d;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:32px;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,0.7);font-family:'Inter',sans-serif;">
-    <div style="font-size:2rem;margin-bottom:12px;">&#x1F511;</div>
-    <div style="font-size:15px;font-weight:700;color:#e8eaf0;margin-bottom:6px;">Authentication Required</div>
-    <div style="font-size:12.5px;color:#9095a8;margin-bottom:22px;line-height:1.7;">
-      Log in or create an account to start your research session.
+<div id="auth-modal" class="auth-modal-overlay">
+  <div class="auth-modal-box">
+    <div style="font-size:2rem;margin-bottom:12px;text-align:center;">&#x2728;</div>
+    <div style="font-size:18px;font-weight:700;color:#e8eaf0;margin-bottom:6px;text-align:center;">Welcome to Wayfinder</div>
+    <div style="font-size:13px;color:#9095a8;margin-bottom:24px;line-height:1.6;text-align:center;">
+      Sign in or create an account to start experiencing superhuman research capabilities.
     </div>
     
-    <input id="auth-email" type="email" placeholder="Email Address" style="width:100%;background:#1e2028;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;color:#e8eaf0;font-family:'Inter',sans-serif;font-size:13.5px;outline:none;margin-bottom:12px;transition:border-color 0.15s;" onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'" />
-    <input id="auth-password" type="password" placeholder="Password" style="width:100%;background:#1e2028;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;color:#e8eaf0;font-family:'Inter',sans-serif;font-size:13.5px;outline:none;margin-bottom:24px;transition:border-color 0.15s;" onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'" />
+    <input id="auth-email" class="auth-input" type="email" placeholder="Email Address" />
+    <input id="auth-password" class="auth-input" type="password" placeholder="Password" style="margin-bottom:24px;" />
     
-    <div style="display:flex;gap:12px;margin-bottom:16px;">
-      <button id="login-btn" style="flex:1;background:#6366f1;border:none;border-radius:8px;padding:11px;color:white;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Log In</button>
-      <button id="signup-btn" style="flex:1;background:var(--bg-elevated);border:1px solid var(--border-mid);border-radius:8px;padding:11px;color:white;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border-mid)'">Sign Up</button>
+    <div style="display:flex;gap:12px;margin-bottom:20px;">
+      <button id="login-btn" class="auth-btn-primary">Log In</button>
+      <button id="signup-btn" class="auth-btn-secondary">Sign Up</button>
     </div>
     
-    <div style="text-align:center;font-size:11px;color:var(--text-muted);margin-bottom:16px;text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:center;gap:10px;">
+    <div style="text-align:center;font-size:11px;color:var(--text-muted);margin-bottom:20px;text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:center;gap:10px;">
       <div style="flex:1;height:1px;background:var(--border);"></div>
       OR
       <div style="flex:1;height:1px;background:var(--border);"></div>
     </div>
     
-    <button id="google-btn" style="width:100%;background:white;color:#333;border:none;border-radius:8px;padding:10px;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+    <button id="google-btn" style="width:100%;background:white;color:#333;border:none;border-radius:10px;padding:12px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 8px rgba(255,255,255,0.1);transition:all 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
       <svg width="18" height="18" viewBox="0 0 48 48">
         <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
         <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
