@@ -1300,9 +1300,6 @@
   // Define ensureAuth as a no-op initially until Firebase is ready
   async function ensureAuth() {}
 
-  }
-  });
-
   async function startResearch(isFromHero) {
     var question = isFromHero ? heroQInput.value.trim() : qInput.value.trim();
     if (!question) { isFromHero ? heroQInput.focus() : qInput.focus(); return; }
