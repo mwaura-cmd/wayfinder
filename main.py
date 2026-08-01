@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import config
@@ -34,6 +35,8 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+app.mount("/assets", StaticFiles(directory=Path(__file__).parent / "frontend" / "assets"), name="assets")
 
 # ── Register Components ────────────────────────────────────────────────────────
 ProviderRegistry.register("openrouter", OpenRouterProvider())
