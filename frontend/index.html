@@ -80,23 +80,57 @@
 
     /* App shell */
     .app {
-      display: grid;
-      grid-template-columns: 260px 1fr;
-      grid-template-rows: 1fr 36px;
+      display: flex;
+      flex-direction: column;
       height: 100vh;
       width: 100vw;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .app-main-container {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
     }
 
     .left-panel {
-      grid-column: 1;
-      grid-row: 1;
+      width: 260px;
+      flex-shrink: 0;
       background: var(--bg-surface);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 50;
     }
-.agent-brand {
+
+    .app.sidebar-collapsed .left-panel {
+      margin-left: -260px;
+    }
+
+    .sidebar-collapse-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .sidebar-collapse-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .agent-brand {
       padding: 20px 18px 16px;
       display: flex;
       align-items: center;
@@ -217,13 +251,101 @@
 
 
     /* ====== MAIN AREA ====== */
+    /* ====== MAIN AREA ====== */
     .main-area {
-      grid-column: 2;
-      grid-row: 1;
+      flex: 1;
+      min-width: 0;
       display: flex;
       flex-direction: column;
       overflow: hidden;
       background: var(--bg-base);
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .main-top-nav {
+      position: absolute;
+      top: 12px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .sidebar-toggle-btn {
+      pointer-events: auto;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      color: var(--text-secondary);
+      border-radius: 8px;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .sidebar-toggle-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      border-color: var(--accent);
+    }
+
+    .theme-picker-wrapper {
+      margin-left: auto;
+      position: relative;
+      pointer-events: auto;
+    }
+
+    .theme-toggle-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      color: var(--text-secondary);
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: all 0.2s;
+    }
+    .theme-toggle-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .theme-menu-popup {
+      display: none;
+      position: absolute;
+      top: 42px;
+      right: 0;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-mid);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      padding: 6px;
+      width: 120px;
+      font-size: 13px;
+      z-index: 1001;
+    }
+
+    .theme-option {
+      padding: 6px 12px;
+      cursor: pointer;
+      color: var(--text-primary);
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+    .theme-option:hover {
+      background: var(--bg-hover);
     }
 
     .top-bar {
@@ -234,6 +356,7 @@
       border-bottom: 1px solid var(--border);
       background: var(--bg-surface);
       flex-shrink: 0;
+      z-index: 90;
     }
     .top-bar.visible { display: flex; }
 
@@ -704,8 +827,8 @@
 
     /* ====== STATUS BAR ====== */
     .status-bar {
-      grid-column: 1 / -1;
-      grid-row: 2;
+      height: 36px;
+      flex-shrink: 0;
       background: var(--bg-surface);
       border-top: 1px solid var(--border);
       display: flex; align-items: center;
@@ -783,12 +906,14 @@
     }
 
     @media (max-width: 780px) {
-      .app { grid-template-columns: 1fr; }
+      .app.sidebar-collapsed .left-panel {
+        margin-left: 0;
+      }
       .left-panel {
         position: fixed;
         top: 0; left: 0; bottom: 0;
         width: 280px;
-        z-index: 9999;
+        z-index: 10000;
         background: var(--bg-surface);
         transform: translateX(-100%);
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -801,7 +926,7 @@
       .sidebar-backdrop {
         display: block;
       }
-      .mobile-menu-btn {
+      .sidebar-toggle-btn {
         display: inline-flex !important;
       }
       .hero-preloader { padding: 48px 16px 60px; }
@@ -1105,130 +1230,136 @@
 <div class="app">
 
   <!-- Mobile Sidebar Backdrop Overlay -->
-  <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="toggleMobileSidebar()"></div>
+  <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
 
-  <!-- Left Panel -->
-  <div class="left-panel" id="left-panel">
-    <div class="agent-brand">
-      <div class="agent-logo">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="9" stroke="white" stroke-width="1.5" opacity="0.4"/>
-          <polygon points="12,3 15,12 12,10 9,12" fill="white"/>
-          <polygon points="12,21 9,12 12,14 15,12" fill="white" opacity="0.5"/>
-        </svg>
-      </div>
-      <div style="flex: 1;">
-        <div class="agent-name">Wayfinder</div>
-        <div class="agent-tagline">research agent</div>
-      </div>
-      <button type="button" class="input-action-btn mobile-menu-btn" onclick="toggleMobileSidebar()" style="display:none; font-size:18px;" title="Close Menu">&times;</button>
-    </div>
-
-    <div class="sessions-header">
-      <span class="sessions-label">Sessions</span>
-      <div class="new-session-btn" onclick="goHome(); toggleMobileSidebar(false);" title="New session">+</div>
-    </div>
-
-    <div id="history-list">
-      <div class="history-empty">
-        <span class="history-empty-icon">&#x1F9ED;</span>
-        No sessions yet.<br>Start a search to begin.
-      </div>
-    </div>
-
-    <div class="sidebar-footer" style="display: flex; justify-content: flex-end; align-items: center;">
-      <div id="logout-btn" style="cursor: pointer; color: var(--text-muted); font-size: 11px; font-weight: 500; padding: 4px 8px; border-radius: 4px; transition: background 0.2s, color 0.2s;" onmouseover="this.style.background='var(--bg-hover)'; this.style.color='var(--text-bright)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-muted)'">
-        Sign Out
-      </div>
-    </div>
-  </div>
-
-  <!-- Main Area -->
-  <div class="main-area" style="position: relative;">
-
-    <!-- Mobile Top Navigation Header -->
-    <div style="position: absolute; top: 12px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: center; z-index: 100; pointer-events: none;">
-      <button type="button" class="input-action-btn mobile-menu-btn" onclick="toggleMobileSidebar()" style="display: none; pointer-events: auto; background: var(--bg-surface); border: 1px solid var(--border-mid); border-radius: 8px; width: 34px; height: 34px; font-size: 16px;" title="Open Sessions">
-        &#x2630;
-      </button>
-      <div style="margin-left: auto; position: relative; pointer-events: auto;">
-        <button id="theme-toggle-btn" style="background: var(--bg-surface); border: 1px solid var(--border-mid); color: var(--text-secondary); width: 34px; height: 34px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.2s;" onclick="document.getElementById('theme-menu').style.display = document.getElementById('theme-menu').style.display === 'block' ? 'none' : 'block'">
-          &#x2600;
-        </button>
-        <div id="theme-menu" style="display: none; position: absolute; top: 42px; right: 0; background: var(--bg-surface); border: 1px solid var(--border-mid); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); padding: 6px; width: 120px; font-size: 13px; z-index: 1001;">
-          <div style="padding: 6px 12px; cursor: pointer; color: var(--text-primary); border-radius: 4px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'" onclick="setTheme('light')">Light</div>
-          <div style="padding: 6px 12px; cursor: pointer; color: var(--text-primary); border-radius: 4px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'" onclick="setTheme('dark')">Dark</div>
-          <div style="padding: 6px 12px; cursor: pointer; color: var(--text-primary); border-radius: 4px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'" onclick="setTheme('system')">System</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Hidden Global File Input -->
-    <input type="file" id="global-file-input" multiple accept=".pdf,.docx,.txt,.md,.json,.csv" style="display:none;" onchange="handleFileSelect(event)" />
-
-    <div class="top-bar" id="topbar">
-      <button type="button" class="input-action-btn mobile-menu-btn" onclick="toggleMobileSidebar()" style="display:none; font-size:16px;" title="Open Sessions">&#x2630;</button>
-      <button type="button" class="input-action-btn" onclick="triggerFileUpload()" title="Attach document (PDF, Word, TXT)">&#x1F4CE;</button>
-      <button type="button" class="input-action-btn voice-btn" onclick="toggleVoiceSearch()" title="Voice search">&#x1F399;&#xFE0F;</button>
-      <input id="question-input" type="text" placeholder="Ask a follow-up or new question&#x2026;" autocomplete="off" spellcheck="true" />
-      <button id="submit-btn">Research &#x2197;</button>
-    </div>
-    <div id="topbar-attached-files" class="attached-files-container" style="padding: 0 20px; display: none;"></div>
-
-    <div class="content-scroll" id="content-area">
-
-      <!-- Hero -->
-      <div class="hero-preloader" id="hero-preloader">
-        <div class="hero-logo">
-          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="16" cy="16" r="12" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>
-            <polygon points="16,4 20,16 16,13 12,16" fill="white"/>
-            <polygon points="16,28 12,16 16,19 20,16" fill="white" opacity="0.55"/>
-            <circle cx="16" cy="16" r="2" fill="white" opacity="0.6"/>
+  <div class="app-main-container">
+    <!-- Left Panel -->
+    <div class="left-panel" id="left-panel">
+      <div class="agent-brand">
+        <div class="agent-logo">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="9" stroke="white" stroke-width="1.5" opacity="0.4"/>
+            <polygon points="12,3 15,12 12,10 9,12" fill="white"/>
+            <polygon points="12,21 9,12 12,14 15,12" fill="white" opacity="0.5"/>
           </svg>
         </div>
-
-        <h1 class="hero-heading">Research <span class="accent-word">anything</span></h1>
-        <p class="hero-sub">Wayfinder searches the live web, synthesises sources, and returns clear, grounded answers &#x2014; not hallucinations.</p>
-
-        <div class="capability-row">
-          <div class="capability-pill"><span class="pill-icon">&#x1F50D;</span> Live web search</div>
-          <div class="capability-pill"><span class="pill-icon">&#x1F4C4;</span> Source synthesis</div>
-          <div class="capability-pill"><span class="pill-icon">&#x1F9E0;</span> Deep analysis</div>
-          <div class="capability-pill"><span class="pill-icon">&#x26A1;</span> Streamed results</div>
+        <div style="flex: 1;">
+          <div class="agent-name">Wayfinder</div>
+          <div class="agent-tagline">research agent</div>
         </div>
+        <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebar()" title="Toggle Sidebar (Ctrl+B)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+        </button>
+      </div>
 
-        <div class="hero-search-area" id="hero-search-area" style="display: flex; flex-direction: column; align-items: center;">
-          <div class="hero-search-box" style="width: 100%;">
-            <button type="button" class="input-action-btn" onclick="triggerFileUpload()" title="Attach document (PDF, Word, TXT)">&#x1F4CE;</button>
-            <button type="button" class="input-action-btn voice-btn" onclick="toggleVoiceSearch()" title="Voice search">&#x1F399;&#xFE0F;</button>
-            <input id="hero-question-input" type="text" placeholder="What do you want to research?" autocomplete="off" spellcheck="true" />
-            <button id="hero-submit-btn">Start Research &#x2197;</button>
-          </div>
-          <div id="hero-attached-files" class="attached-files-container"></div>
+      <div class="sessions-header">
+        <span class="sessions-label">Sessions</span>
+        <div class="new-session-btn" onclick="goHome(); if(window.innerWidth<=780) toggleSidebar(false);" title="New session">+</div>
+      </div>
+
+      <div id="history-list">
+        <div class="history-empty">
+          <span class="history-empty-icon">&#x1F9ED;</span>
+          No sessions yet.<br>Start a search to begin.
         </div>
+      </div>
 
-        <div class="hero-chips-area">
-          <div class="chips-label">Try asking</div>
-          <div class="suggestion-chips">
-            <div class="chip" onclick="fillQuestion(this)">Latest developments in fusion energy 2025</div>
-            <div class="chip" onclick="fillQuestion(this)">Who founded OpenAI and when did Sam Altman return?</div>
-            <div class="chip" onclick="fillQuestion(this)">Compare Next.js 14 and Remix for a new project</div>
-            <div class="chip" onclick="fillQuestion(this)">What caused the 2023 SVB bank collapse?</div>
+      <div class="sidebar-footer" style="display: flex; justify-content: flex-end; align-items: center;">
+        <div id="logout-btn" style="cursor: pointer; color: var(--text-muted); font-size: 11px; font-weight: 500; padding: 4px 8px; border-radius: 4px; transition: background 0.2s, color 0.2s;" onmouseover="this.style.background='var(--bg-hover)'; this.style.color='var(--text-bright)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-muted)'">
+          Sign Out
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Area -->
+    <div class="main-area">
+
+      <!-- Top Navigation Header -->
+      <div class="main-top-nav">
+        <button type="button" class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Toggle Sidebar (Ctrl+B)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+        </button>
+        <div class="theme-picker-wrapper">
+          <button id="theme-toggle-btn" class="theme-toggle-btn" onclick="document.getElementById('theme-menu').style.display = document.getElementById('theme-menu').style.display === 'block' ? 'none' : 'block'" title="Switch Theme">
+            &#x2600;
+          </button>
+          <div id="theme-menu" class="theme-menu-popup">
+            <div class="theme-option" onclick="setTheme('light')">Light</div>
+            <div class="theme-option" onclick="setTheme('dark')">Dark</div>
+            <div class="theme-option" onclick="setTheme('system')">System</div>
           </div>
         </div>
       </div>
 
-      <!-- Research view -->
-      <div class="research-view" id="research-area">
-        <div class="research-context" id="research-context">
-          <div class="research-context-icon">&#x1F52D;</div>
-          <div class="research-context-q" id="research-question-display"></div>
-        </div>
-        <div id="timeline"></div>
-        <div id="answer-section"></div>
-      </div>
+      <!-- Hidden Global File Input -->
+      <input type="file" id="global-file-input" multiple accept=".pdf,.docx,.txt,.md,.json,.csv" style="display:none;" onchange="handleFileSelect(event)" />
 
+      <div class="top-bar" id="topbar">
+        <button type="button" class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Toggle Sidebar (Ctrl+B)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+        </button>
+        <button type="button" class="input-action-btn" onclick="triggerFileUpload()" title="Attach document (PDF, Word, TXT)">&#x1F4CE;</button>
+        <button type="button" class="input-action-btn voice-btn" onclick="toggleVoiceSearch()" title="Voice search">&#x1F399;&#xFE0F;</button>
+        <input id="question-input" type="text" placeholder="Ask a follow-up or new question&#x2026;" autocomplete="off" spellcheck="true" />
+        <button id="submit-btn">Research &#x2197;</button>
+      </div>
+      <div id="topbar-attached-files" class="attached-files-container" style="padding: 0 20px; display: none;"></div>
+
+      <div class="content-scroll" id="content-area">
+
+        <!-- Hero -->
+        <div class="hero-preloader" id="hero-preloader">
+          <div class="hero-logo">
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="16" cy="16" r="12" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>
+              <polygon points="16,4 20,16 16,13 12,16" fill="white"/>
+              <polygon points="16,28 12,16 16,19 20,16" fill="white" opacity="0.55"/>
+              <circle cx="16" cy="16" r="2" fill="white" opacity="0.6"/>
+            </svg>
+          </div>
+
+          <h1 class="hero-heading">Research <span class="accent-word">anything</span></h1>
+          <p class="hero-sub">Wayfinder searches the live web, synthesises sources, and returns clear, grounded answers &#x2014; not hallucinations.</p>
+
+          <div class="capability-row">
+            <div class="capability-pill"><span class="pill-icon">&#x1F50D;</span> Live web search</div>
+            <div class="capability-pill"><span class="pill-icon">&#x1F4C4;</span> Source synthesis</div>
+            <div class="capability-pill"><span class="pill-icon">&#x1F9E0;</span> Deep analysis</div>
+            <div class="capability-pill"><span class="pill-icon">&#x26A1;</span> Streamed results</div>
+          </div>
+
+          <div class="hero-search-area" id="hero-search-area" style="display: flex; flex-direction: column; align-items: center;">
+            <div class="hero-search-box" style="width: 100%;">
+              <button type="button" class="input-action-btn" onclick="triggerFileUpload()" title="Attach document (PDF, Word, TXT)">&#x1F4CE;</button>
+              <button type="button" class="input-action-btn voice-btn" onclick="toggleVoiceSearch()" title="Voice search">&#x1F399;&#xFE0F;</button>
+              <input id="hero-question-input" type="text" placeholder="What do you want to research?" autocomplete="off" spellcheck="true" />
+              <button id="hero-submit-btn">Start Research &#x2197;</button>
+            </div>
+            <div id="hero-attached-files" class="attached-files-container"></div>
+          </div>
+
+          <div class="hero-chips-area">
+            <div class="chips-label">Try asking</div>
+            <div class="suggestion-chips">
+              <div class="chip" onclick="fillQuestion(this)">Latest developments in fusion energy 2025</div>
+              <div class="chip" onclick="fillQuestion(this)">Who founded OpenAI and when did Sam Altman return?</div>
+              <div class="chip" onclick="fillQuestion(this)">Compare Next.js 14 and Remix for a new project</div>
+              <div class="chip" onclick="fillQuestion(this)">What caused the 2023 SVB bank collapse?</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Research view -->
+        <div class="research-view" id="research-area">
+          <div class="research-context" id="research-context">
+            <div class="research-context-icon">&#x1F52D;</div>
+            <div class="research-context-q" id="research-question-display"></div>
+          </div>
+          <div id="timeline"></div>
+          <div id="answer-section"></div>
+        </div>
+
+      </div>
     </div>
   </div>
 
@@ -1628,21 +1759,47 @@
     }
   }
 
-  // Mobile Sidebar Drawer Toggle
-  function toggleMobileSidebar(forceState) {
+  // Sidebar Toggle (VS Code Style for Desktop & Mobile)
+  function toggleSidebar(forceState) {
+    const isMobile = window.innerWidth <= 780;
+    const appEl = document.querySelector('.app');
     const sidebar = document.getElementById('left-panel');
     const backdrop = document.getElementById('sidebar-backdrop');
-    if (!sidebar || !backdrop) return;
 
-    const shouldOpen = typeof forceState === 'boolean' ? forceState : !sidebar.classList.contains('open');
-    if (shouldOpen) {
-      sidebar.classList.add('open');
-      backdrop.classList.add('visible');
+    if (isMobile) {
+      if (!sidebar || !backdrop) return;
+      const shouldOpen = typeof forceState === 'boolean' ? forceState : !sidebar.classList.contains('open');
+      if (shouldOpen) {
+        sidebar.classList.add('open');
+        backdrop.classList.add('visible');
+      } else {
+        sidebar.classList.remove('open');
+        backdrop.classList.remove('visible');
+      }
     } else {
-      sidebar.classList.remove('open');
-      backdrop.classList.remove('visible');
+      if (!appEl) return;
+      if (typeof forceState === 'boolean') {
+        if (forceState) appEl.classList.remove('sidebar-collapsed');
+        else appEl.classList.add('sidebar-collapsed');
+      } else {
+        appEl.classList.toggle('sidebar-collapsed');
+      }
+      localStorage.setItem('sidebar-collapsed', appEl.classList.contains('sidebar-collapsed') ? '1' : '0');
     }
   }
+
+  // Restore desktop sidebar preference on load
+  if (window.innerWidth > 780 && localStorage.getItem('sidebar-collapsed') === '1') {
+    document.querySelector('.app')?.classList.add('sidebar-collapsed');
+  }
+
+  // VS Code shortcut Ctrl+B / Cmd+B to toggle sidebar
+  window.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
+      e.preventDefault();
+      toggleSidebar();
+    }
+  });
 
   // Voice Search (Speech to Text) with Auto-Execute on End
   let recognition = null;
