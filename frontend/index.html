@@ -77,11 +77,7 @@
       flex-direction: column;
       overflow: hidden;
     }
-
-    .app.logged-out { grid-template-columns: 0 1fr; }
-    .app.logged-out .left-panel { display: none; }
-
-    .agent-brand {
+.agent-brand {
       padding: 20px 18px 16px;
       display: flex;
       align-items: center;
@@ -738,9 +734,176 @@
       .hero-preloader { padding: 40px 20px 60px; }
       .research-view { padding: 20px 16px 40px; }
     }
+
+    /* ====== MARKETING OVERLAY ====== */
+    .marketing-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--bg-base);
+      z-index: 5000;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+    
+    .marketing-overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .marketing-nav {
+      width: 100%; max-width: 1100px;
+      padding: 24px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .marketing-logo {
+      display: flex; align-items: center; gap: 12px;
+      font-weight: 700; font-size: 18px; color: white;
+    }
+    .marketing-logo svg { width: 28px; height: 28px; }
+    .marketing-nav-links { display: flex; gap: 16px; align-items: center; }
+    .marketing-login-btn {
+      background: transparent; border: none; color: var(--text-secondary);
+      font-weight: 500; cursor: pointer; font-size: 14.5px; transition: color 0.2s;
+    }
+    .marketing-login-btn:hover { color: white; }
+    .marketing-cta-btn {
+      background: var(--accent); color: white; border: none; border-radius: 20px;
+      padding: 8px 18px; font-weight: 600; font-size: 14px; cursor: pointer;
+      transition: all 0.2s; box-shadow: 0 4px 14px rgba(99,102,241,0.25);
+    }
+    .marketing-cta-btn:hover {
+      background: #7174fa; transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(99,102,241,0.35);
+    }
+    .marketing-cta-btn.large {
+      padding: 14px 32px; font-size: 16px; border-radius: 30px; margin-top: 24px;
+    }
+
+    .marketing-hero {
+      position: relative; width: 100%; max-width: 900px;
+      padding: 100px 24px 80px; text-align: center;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .hero-glow {
+      position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(0,0,0,0) 70%);
+      z-index: -1; pointer-events: none;
+    }
+    .marketing-badge {
+      display: inline-block; padding: 6px 14px;
+      background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.25);
+      border-radius: 30px; color: #a5a7fb; font-size: 13px; font-weight: 500;
+      margin-bottom: 24px; letter-spacing: 0.02em;
+    }
+    .marketing-title {
+      font-size: 64px; font-weight: 800; line-height: 1.1;
+      letter-spacing: -0.03em; color: white; margin-bottom: 24px;
+    }
+    .marketing-gradient {
+      background: linear-gradient(135deg, #a5a7fb, #e879f9);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .marketing-subtitle {
+      font-size: 19px; color: var(--text-secondary); max-width: 650px;
+      line-height: 1.6; margin-bottom: 40px;
+    }
+    .marketing-features {
+      width: 100%; max-width: 1100px; padding: 60px 24px 100px;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .features-title {
+      font-size: 32px; font-weight: 700; margin-bottom: 48px; color: white; letter-spacing: -0.02em;
+    }
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px; width: 100%;
+    }
+    .feature-card {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px; padding: 32px 24px; text-align: left;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .feature-card:hover { background: rgba(255,255,255,0.05); transform: translateY(-4px); }
+    .feature-icon {
+      font-size: 28px; margin-bottom: 20px; display: inline-flex; align-items: center;
+      justify-content: center; width: 56px; height: 56px; border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+    }
+    .feature-card h3 { font-size: 18px; color: white; font-weight: 600; margin-bottom: 12px; }
+    .feature-card p { color: var(--text-secondary); font-size: 14.5px; line-height: 1.5; }
+    .marketing-footer { width: 100%; padding: 40px 24px; text-align: center; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; }
+
+    @media (max-width: 780px) {
+      .marketing-title { font-size: 42px; }
+      .marketing-subtitle { font-size: 16px; }
+      .hero-glow { width: 400px; height: 400px; }
+    }
+    
   </style>
 </head>
 <body>
+
+  <div class="marketing-overlay" id="marketing-overlay">
+    <div class="marketing-nav">
+      <div class="marketing-logo">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="16" cy="16" r="12" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>
+          <polygon points="16,4 20,16 16,13 12,16" fill="white"/>
+          <polygon points="16,28 12,16 16,19 20,16" fill="white" opacity="0.55"/>
+          <circle cx="16" cy="16" r="2" fill="white" opacity="0.6"/>
+        </svg>
+        Wayfinder
+      </div>
+      <div class="marketing-nav-links">
+        <button class="marketing-login-btn" onclick="showAuthModal()">Log In</button>
+        <button class="marketing-cta-btn" onclick="showAuthModal()">Get Started</button>
+      </div>
+    </div>
+
+    <div class="marketing-hero">
+      <div class="hero-glow"></div>
+      <div class="marketing-badge">New: Wayfinder AI Web Agent</div>
+      <h1 class="marketing-title">Research the Web with <span class="marketing-gradient">Superhuman Precision</span></h1>
+      <p class="marketing-subtitle">Wayfinder searches the live web, synthesises sources, and returns clear, grounded answers. Say goodbye to hallucinations and outdated training data.</p>
+      <button class="marketing-cta-btn large" onclick="showAuthModal()">Get started for free</button>
+    </div>
+
+    <div class="marketing-features">
+      <h2 class="features-title">How it works</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">&#x1F50D;</div>
+          <h3>Live Web Search</h3>
+          <p>Bypasses outdated training data by scouring the live internet for up-to-the-minute facts.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#x1F4C4;</div>
+          <h3>Source Synthesis</h3>
+          <p>Cross-references multiple reliable sources to build a comprehensive, unbiased picture.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#x1F9E0;</div>
+          <h3>Deep Analysis</h3>
+          <p>Goes beyond simple keyword matching. Understands intent and extracts nuanced meaning.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#x26A1;</div>
+          <h3>Streamed Results</h3>
+          <p>Watch the agent's thought process in real-time as it breaks down and solves your query.</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="marketing-footer">
+      <p>&copy; 2026 Wayfinder AI. All rights reserved.</p>
+    </div>
+  </div>
+
 
 <div class="app">
 
@@ -811,17 +974,11 @@
           <div class="capability-pill"><span class="pill-icon">&#x26A1;</span> Streamed results</div>
         </div>
 
-        <div class="hero-search-area" id="hero-search-area" style="display: none;">
+        <div class="hero-search-area" id="hero-search-area" style="display: flex;">
           <div class="hero-search-box">
             <input id="hero-question-input" type="text" placeholder="What do you want to research?" autocomplete="off" spellcheck="true" />
             <button id="hero-submit-btn">Start Research &#x2197;</button>
           </div>
-        </div>
-
-        <div class="hero-cta-area" id="hero-cta-area" style="display: flex; width: 100%; max-width: 640px; margin-top: 10px; justify-content: center; opacity: 0; animation: slideUpFade 0.45s var(--ease-out) 0.6s forwards;">
-          <button id="hero-get-started-btn" style="background:var(--accent); border:none; border-radius:8px; padding:14px 32px; color:white; font-family:var(--font-sans); font-size:15px; font-weight:600; cursor:pointer; transition:opacity 0.15s, transform 0.1s; box-shadow: 0 4px 14px rgba(99,102,241,0.3);" onmouseover="this.style.opacity='0.9'; this.style.transform='translateY(-1px)'" onmouseout="this.style.opacity='1'; this.style.transform='none'">
-            Get started for free
-          </button>
         </div>
 
         <div class="hero-chips-area">
@@ -1140,14 +1297,7 @@
   // Define ensureAuth as a no-op initially until Firebase is ready
   async function ensureAuth() {}
 
-  document.addEventListener('DOMContentLoaded', function() {
-    // UI setup is handled by Firebase onAuthStateChanged
-    var getStartedBtn = document.getElementById('hero-get-started-btn');
-    if (getStartedBtn) {
-      getStartedBtn.addEventListener('click', function() {
-        showAuthModal();
-      });
-    }
+  }
   });
 
   async function startResearch(isFromHero) {
@@ -1327,19 +1477,17 @@
       const appEl = document.querySelector('.app');
       if (user) {
         // Logged in
-        appEl.classList.remove('logged-out');
+        document.getElementById('marketing-overlay').classList.add('hidden');
         window.currentIdToken = await user.getIdToken();
         window.hideAuthModal();
         window.loadHistory();
-        document.getElementById('hero-search-area').style.display = 'block';
-        document.getElementById('hero-cta-area').style.display = 'none';
         document.getElementById('hero-question-input').focus();
-      } else {
+} else {
         // Logged out
-        appEl.classList.add('logged-out');
+        document.getElementById('marketing-overlay').classList.remove('hidden');
         window.currentIdToken = '';
-        document.getElementById('hero-search-area').style.display = 'none';
-        document.getElementById('hero-cta-area').style.display = 'flex';
+
+        
       }
     });
 
