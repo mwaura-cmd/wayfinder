@@ -105,7 +105,7 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
                         "task_id": task_id,
                         "question": question,
                         "success": result.success,
-                        "final_answer": result.output,
+                        "final_answer": result.final_output,
                         "created_at": firestore.SERVER_TIMESTAMP,
                         "uid": uid,
                     })
@@ -115,7 +115,7 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
                     semantic_store = FirebaseSemanticMemoryStore()
                     await semantic_store.store(
                         key=task_id,
-                        content=result.output,
+                        content=result.final_output,
                         metadata={"question": question, "task_id": task_id, "uid": uid}
                     )
                     log.info(f"Task {task_id} saved to semantic memory.")
