@@ -16,7 +16,7 @@ from core.skills import SkillRegistry
 from observability.telemetry import TelemetryHub, TelemetryEvent, Payload
 from orchestration.topologies import run_sequential_agent
 
-from providers.gemini import GeminiProvider
+from providers.openrouter import OpenRouterProvider
 from tools.tavily import TavilySearchExecutor
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -32,7 +32,7 @@ app.add_middleware(
 )
 
 # ── Register Components ────────────────────────────────────────────────────────
-ProviderRegistry.register("gemini", GeminiProvider(model_name="gemini-3.6-flash"))
+ProviderRegistry.register("openrouter", OpenRouterProvider())
 
 ToolRegistry.register(ToolDefinition(
     name="web_search",
@@ -78,7 +78,7 @@ async def start_research(req: ResearchRequest):
         try:
             result = await run_sequential_agent(
                 prompt=question,
-                provider_id="gemini",
+                provider_id="openrouter",
                 tool_categories=["search"],
                 skill_domain="",
                 role_prompt=(

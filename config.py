@@ -20,10 +20,16 @@ if _ENV_FILE.exists():
             if _key and _val and _key not in os.environ:
                 os.environ[_key] = _val
 
-# ── LLM ──────────────────────────────────────────────────────────────────────
-GEMINI_API_KEY: str = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL: str = "gemini-2.5-flash"
-GEMINI_FALLBACK_MODEL: str = "gemini-2.5-flash-lite-preview-06-17"
+# ── LLM — OpenRouter ──────────────────────────────────────────────────────────
+# Sign up at https://openrouter.ai and grab a free API key.
+# Set OPENROUTER_API_KEY in your .env (local) or Render dashboard (prod).
+# Browse models at https://openrouter.ai/models — free ones are marked :free
+OPENROUTER_API_KEY: str = os.environ.get("OPENROUTER_API_KEY", "")
+OPENROUTER_MODEL: str = os.environ.get(
+    "OPENROUTER_MODEL",
+    "anthropic/claude-sonnet-4-5",          # best quality on free tier
+)
+OPENROUTER_FALLBACK_MODEL: str = "meta-llama/llama-3.1-8b-instruct:free"
 
 # ── Search ────────────────────────────────────────────────────────────────────
 TAVILY_API_KEY: str = os.environ.get("TAVILY_API_KEY", "")
