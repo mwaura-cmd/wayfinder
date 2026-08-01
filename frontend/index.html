@@ -195,22 +195,7 @@
       border-top: 1px solid var(--border);
       flex-shrink: 0;
     }
-    .model-badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: var(--bg-active);
-      border: 1px solid var(--border-mid);
-      border-radius: 20px;
-      padding: 4px 10px;
-      font-size: 10.5px;
-      color: var(--text-secondary);
-      font-family: var(--font-mono);
-    }
-    .model-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 6px var(--green);
-    }
+
 
     /* ====== MAIN AREA ====== */
     .main-area {
@@ -791,13 +776,13 @@
     .hero-glow {
       position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%);
       width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(0,0,0,0) 70%);
+      background: radial-gradient(circle, rgba(167,139,250,0.15) 0%, rgba(0,0,0,0) 70%);
       z-index: -1; pointer-events: none;
     }
     .marketing-badge {
       display: inline-block; padding: 6px 14px;
-      background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.25);
-      border-radius: 30px; color: #a5a7fb; font-size: 13px; font-weight: 500;
+      background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25);
+      border-radius: 30px; color: #c4b5fd; font-size: 13px; font-weight: 500;
       margin-bottom: 24px; letter-spacing: 0.02em;
     }
     .marketing-title {
@@ -805,7 +790,7 @@
       letter-spacing: -0.03em; color: white; margin-bottom: 24px;
     }
     .marketing-gradient {
-      background: linear-gradient(135deg, #a5a7fb, #e879f9);
+      background: linear-gradient(135deg, #60a5fa, #c084fc, #e879f9);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
     .marketing-subtitle {
@@ -867,6 +852,9 @@
 
     <div class="marketing-hero">
       <div class="hero-glow"></div>
+      <div class="marketing-graphic" style="margin-bottom: 32px; max-width: 600px; width: 100%;">
+        <img src="assets/hero_graphic.png" alt="Wayfinder AI Agent" style="width: 100%; height: auto; border-radius: 20px; box-shadow: 0 16px 40px rgba(192, 132, 252, 0.2); border: 1px solid rgba(255,255,255,0.1);" />
+      </div>
       <div class="marketing-badge">New: Wayfinder AI Web Agent</div>
       <h1 class="marketing-title">Research the Web with <span class="marketing-gradient">Superhuman Precision</span></h1>
       <p class="marketing-subtitle">Wayfinder searches the live web, synthesises sources, and returns clear, grounded answers. Say goodbye to hallucinations and outdated training data.</p>
@@ -935,11 +923,7 @@
       </div>
     </div>
 
-    <div class="sidebar-footer" style="display: flex; justify-content: space-between; align-items: center;">
-      <div class="model-badge">
-        <div class="model-dot"></div>
-        gemini-2.0-flash
-      </div>
+    <div class="sidebar-footer" style="display: flex; justify-content: flex-end; align-items: center;">
       <div id="logout-btn" style="cursor: pointer; color: var(--text-muted); font-size: 11px; font-weight: 500; padding: 4px 8px; border-radius: 4px; transition: background 0.2s, color 0.2s;" onmouseover="this.style.background='var(--bg-hover)'; this.style.color='var(--text-bright)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-muted)'">
         Sign Out
       </div>
@@ -947,7 +931,19 @@
   </div>
 
   <!-- Main Area -->
-  <div class="main-area">
+  <div class="main-area" style="position: relative;">
+
+    <!-- Theme Picker -->
+    <div style="position: absolute; top: 16px; right: 24px; z-index: 100;">
+      <button id="theme-toggle-btn" style="background: var(--bg-surface); border: 1px solid var(--border-mid); color: var(--text-secondary); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.2s;" onclick="document.getElementById('theme-menu').style.display = document.getElementById('theme-menu').style.display === 'block' ? 'none' : 'block'">
+        &#x2600;
+      </button>
+      <div id="theme-menu" style="display: none; position: absolute; top: 40px; right: 0; background: var(--bg-surface); border: 1px solid var(--border-mid); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); padding: 6px; width: 120px; font-size: 13px;">
+        <div style="padding: 6px 12px; cursor: pointer; color: var(--text-primary); border-radius: 4px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'" onclick="setTheme('light')">Light</div>
+        <div style="padding: 6px 12px; cursor: pointer; color: var(--text-primary); border-radius: 4px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'" onclick="setTheme('dark')">Dark</div>
+        <div style="padding: 6px 12px; cursor: pointer; color: var(--text-primary); border-radius: 4px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'" onclick="setTheme('system')">System</div>
+      </div>
+    </div>
 
     <div class="top-bar" id="topbar">
       <input id="question-input" type="text" placeholder="Ask a follow-up or new question&#x2026;" autocomplete="off" spellcheck="true" />
@@ -1296,6 +1292,39 @@
   function hideAuthModal() { 
     document.getElementById('auth-modal').style.display = 'none'; 
   }
+
+  function setTheme(theme) {
+    if (theme === 'light') {
+      document.body.classList.add('theme-light');
+      localStorage.setItem('theme', 'light');
+    } else if (theme === 'dark') {
+      document.body.classList.remove('theme-light');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      localStorage.removeItem('theme');
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        document.body.classList.add('theme-light');
+      } else {
+        document.body.classList.remove('theme-light');
+      }
+    }
+    document.getElementById('theme-menu').style.display = 'none';
+  }
+
+  window.addEventListener('click', function(e) {
+    const btn = document.getElementById('theme-toggle-btn');
+    const menu = document.getElementById('theme-menu');
+    if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
+      menu.style.display = 'none';
+    }
+  });
+
+  // Initialize theme on load
+  (function() {
+    const stored = localStorage.getItem('theme');
+    if (stored) setTheme(stored);
+    else setTheme('system');
+  })();
 
   // Define ensureAuth as a no-op initially until Firebase is ready
   async function ensureAuth() {}
