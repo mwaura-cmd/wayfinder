@@ -935,10 +935,13 @@
       </div>
     </div>
 
-    <div class="sidebar-footer">
+    <div class="sidebar-footer" style="display: flex; justify-content: space-between; align-items: center;">
       <div class="model-badge">
         <div class="model-dot"></div>
         gemini-2.0-flash
+      </div>
+      <div id="logout-btn" style="cursor: pointer; color: var(--text-muted); font-size: 11px; font-weight: 500; padding: 4px 8px; border-radius: 4px; transition: background 0.2s, color 0.2s;" onmouseover="this.style.background='var(--bg-hover)'; this.style.color='var(--text-bright)'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-muted)'">
+        Sign Out
       </div>
     </div>
   </div>
@@ -1455,7 +1458,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
   import { 
-    getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup
+    getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
   const firebaseConfig = {
@@ -1491,7 +1494,11 @@
       }
     });
 
-    document.getElementById('login-btn').addEventListener('click', () => {
+      document.getElementById('logout-btn').addEventListener('click', () => {
+        signOut(auth).catch(err => console.error("Sign out error", err));
+      });
+
+      document.getElementById('login-btn').addEventListener('click', () => {
       const email = document.getElementById('auth-email').value;
       const pass = document.getElementById('auth-password').value;
       signInWithEmailAndPassword(auth, email, pass).catch(err => alert("Login failed: " + err.message));
