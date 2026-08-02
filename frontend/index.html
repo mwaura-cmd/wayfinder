@@ -1107,17 +1107,17 @@
     /* Modern Auth Modal */
     .auth-modal-overlay {
       display: none; position: fixed; inset: 0; z-index: 9999;
-      background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       align-items: center; justify-content: center;
       animation: fadeIn 0.3s ease;
     }
     .auth-modal-box {
-      background: rgba(24, 25, 29, 0.85);
-      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(24, 25, 29, 0.92);
+      border: 1px solid rgba(255,255,255,0.12);
       border-radius: 20px;
       padding: 36px 32px;
-      width: 100%; max-width: 400px;
-      box-shadow: 0 32px 100px rgba(0,0,0,0.8), 0 0 0 1px rgba(167,139,250,0.1) inset;
+      width: 100%; max-width: 420px;
+      box-shadow: 0 32px 100px rgba(0,0,0,0.85), 0 0 0 1px rgba(167,139,250,0.1) inset;
       position: relative; overflow: hidden;
       transform: translateY(20px);
       animation: slideUpModal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -1127,6 +1127,42 @@
       content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
       background: radial-gradient(circle at top, rgba(167,139,250,0.15) 0%, transparent 50%);
       pointer-events: none;
+    }
+    .auth-modal-close {
+      position: absolute;
+      top: 16px; right: 18px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 22px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+      transition: color 0.2s;
+      z-index: 10;
+    }
+    .auth-modal-close:hover {
+      color: white;
+    }
+    .auth-banner {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      line-height: 1.45;
+      text-align: center;
+      animation: fadeIn 0.2s ease;
+      word-break: break-word;
+    }
+    .auth-banner.error {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+    }
+    .auth-banner.success {
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      color: #86efac;
     }
     .auth-input {
       width: 100%; background: rgba(30, 32, 40, 0.6);
@@ -2047,7 +2083,8 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
   import { 
-    getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut
+    getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
+    GoogleAuthProvider, signInWithPopup, signOut, sendEmailVerification
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
   const firebaseConfig = {
@@ -2060,48 +2097,223 @@
     appId: "1:922347923833:web:a4c92136e619d59be067a8"
   };
 
+  // Known disposable / fake temporary email providers blocklist
+  const DISPOSABLE_EMAIL_DOMAINS = new Set([
+    'mailinator.com', 'tempmail.com', '10minutemail.com', 'guerrillamail.com', 'yopmail.com', 
+    'trashmail.com', 'sharklasers.com', 'getairmail.com', 'dispostable.com', 'fakemailgenerator.com', 
+    'throwawaymail.com', 'nada.ltd', 'getnada.com', 'inboxkitten.com', 'crazymailing.com', 
+    'fake.com', 'test.com', 'example.com', 'temp-mail.org', 'tempmailo.com', 'mytemp.email',
+    'tempmail.net', 'burnermail.io', 'dropmail.me', 'mohmal.com', 'generator.email'
+  ]);
+
+  function validateEmail(email) {
+    const trimmed = String(email || '').trim();
+    const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!regex.test(trimmed)) {
+      return { valid: false, message: 'Please enter a valid, well-formed email address (e.g. name@domain.com).' };
+    }
+    const domain = trimmed.split('@')[1]?.toLowerCase();
+    if (domain && DISPOSABLE_EMAIL_DOMAINS.has(domain)) {
+      return { valid: false, message: 'Temporary or disposable email domains are not permitted. Please use a real email address.' };
+    }
+    return { valid: true, email: trimmed };
+  }
+
+  function showAuthBanner(msg, isError = true) {
+    const b = document.getElementById('auth-banner');
+    if (!b) return;
+    b.textContent = msg;
+    b.className = 'auth-banner ' + (isError ? 'error' : 'success');
+    b.style.display = 'block';
+  }
+
+  function hideAuthBanner() {
+    const b = document.getElementById('auth-banner');
+    if (b) b.style.display = 'none';
+  }
+
+  function showVerifyScreen(email) {
+    hideAuthBanner();
+    document.getElementById('auth-form-view').style.display = 'none';
+    document.getElementById('auth-verify-view').style.display = 'block';
+    document.getElementById('verify-email-display').textContent = email;
+    window.showAuthModal();
+  }
+
+  function showFormScreen() {
+    hideAuthBanner();
+    document.getElementById('auth-form-view').style.display = 'block';
+    document.getElementById('auth-verify-view').style.display = 'none';
+    window.showAuthModal();
+  }
+
+  window.showAuthModal = function(view = 'form') {
+    const modal = document.getElementById('auth-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    if (view === 'form') {
+      document.getElementById('auth-form-view').style.display = 'block';
+      document.getElementById('auth-verify-view').style.display = 'none';
+      hideAuthBanner();
+    }
+  };
+
+  window.hideAuthModal = function() {
+    const modal = document.getElementById('auth-modal');
+    if (modal) modal.style.display = 'none';
+  };
+
   try {
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     window.firebaseAuth = auth;
 
     onAuthStateChanged(auth, async (user) => {
-      const appEl = document.querySelector('.app');
       if (user) {
-        // Logged in
+        // Enforce email verification
+        if (!user.emailVerified) {
+          document.getElementById('marketing-overlay').classList.remove('hidden');
+          window.currentIdToken = '';
+          showVerifyScreen(user.email || 'your email address');
+          return;
+        }
+
+        // Verified user
         document.getElementById('marketing-overlay').classList.add('hidden');
         window.currentIdToken = await user.getIdToken();
         window.hideAuthModal();
         window.loadHistory();
-        document.getElementById('hero-question-input').focus();
-} else {
-        // Logged out
+        document.getElementById('hero-question-input')?.focus();
+      } else {
         document.getElementById('marketing-overlay').classList.remove('hidden');
         window.currentIdToken = '';
-
-        
       }
     });
 
-      document.getElementById('logout-btn').addEventListener('click', () => {
-        signOut(auth).catch(err => console.error("Sign out error", err));
-      });
-
-      document.getElementById('login-btn').addEventListener('click', () => {
-      const email = document.getElementById('auth-email').value;
-      const pass = document.getElementById('auth-password').value;
-      signInWithEmailAndPassword(auth, email, pass).catch(err => alert("Login failed: " + err.message));
+    // Logout
+    document.getElementById('logout-btn')?.addEventListener('click', () => {
+      signOut(auth).catch(err => console.error("Sign out error", err));
     });
 
-    document.getElementById('signup-btn').addEventListener('click', () => {
-      const email = document.getElementById('auth-email').value;
+    // Login with Email & Password
+    document.getElementById('login-btn')?.addEventListener('click', async () => {
+      hideAuthBanner();
+      const rawEmail = document.getElementById('auth-email').value;
       const pass = document.getElementById('auth-password').value;
-      createUserWithEmailAndPassword(auth, email, pass).catch(err => alert("Signup failed: " + err.message));
+
+      const val = validateEmail(rawEmail);
+      if (!val.valid) {
+        showAuthBanner(val.message, true);
+        return;
+      }
+      if (!pass) {
+        showAuthBanner('Please enter your password.', true);
+        return;
+      }
+
+      try {
+        const cred = await signInWithEmailAndPassword(auth, val.email, pass);
+        if (!cred.user.emailVerified) {
+          showVerifyScreen(val.email);
+          showAuthBanner('Please verify your email address to continue.', true);
+        } else {
+          window.hideAuthModal();
+        }
+      } catch (err) {
+        let msg = err.message || 'Login failed.';
+        if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+          msg = 'Invalid email or password. Please try again.';
+        }
+        showAuthBanner(msg, true);
+      }
     });
 
-    document.getElementById('google-btn').addEventListener('click', () => {
+    // Signup with Email & Password (sends verification email)
+    document.getElementById('signup-btn')?.addEventListener('click', async () => {
+      hideAuthBanner();
+      const rawEmail = document.getElementById('auth-email').value;
+      const pass = document.getElementById('auth-password').value;
+
+      const val = validateEmail(rawEmail);
+      if (!val.valid) {
+        showAuthBanner(val.message, true);
+        return;
+      }
+      if (!pass || pass.length < 6) {
+        showAuthBanner('Password must be at least 6 characters long.', true);
+        return;
+      }
+
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, val.email, pass);
+        await sendEmailVerification(cred.user);
+        showVerifyScreen(val.email);
+        showAuthBanner('Verification link sent! Check your inbox and click the link to verify.', false);
+      } catch (err) {
+        let msg = err.message || 'Signup failed.';
+        if (err.code === 'auth/email-already-in-use') {
+          msg = 'This email is already registered. Please click Log In instead.';
+        }
+        showAuthBanner(msg, true);
+      }
+    });
+
+    // Google Sign In (Google accounts are automatically verified)
+    document.getElementById('google-btn')?.addEventListener('click', () => {
+      hideAuthBanner();
       const provider = new GoogleAuthProvider();
-      signInWithPopup(auth, provider).catch(err => alert("Google login failed: " + err.message));
+      signInWithPopup(auth, provider).catch(err => {
+        showAuthBanner('Google sign-in error: ' + err.message, true);
+      });
+    });
+
+    // Verify Check Button ("I've Verified My Email")
+    document.getElementById('verify-check-btn')?.addEventListener('click', async () => {
+      hideAuthBanner();
+      if (!auth.currentUser) {
+        showFormScreen();
+        return;
+      }
+      try {
+        await auth.currentUser.reload();
+        if (auth.currentUser.emailVerified) {
+          showAuthBanner('Email verified! Loading Wayfinder...', false);
+          setTimeout(async () => {
+            document.getElementById('marketing-overlay').classList.add('hidden');
+            window.currentIdToken = await auth.currentUser.getIdToken(true);
+            window.hideAuthModal();
+            window.loadHistory();
+          }, 400);
+        } else {
+          showAuthBanner('Email is not verified yet. Please check your inbox or click "Resend Verification Link".', true);
+        }
+      } catch (err) {
+        showAuthBanner('Verification check error: ' + err.message, true);
+      }
+    });
+
+    // Resend Verification Email
+    document.getElementById('resend-verify-btn')?.addEventListener('click', async () => {
+      hideAuthBanner();
+      if (!auth.currentUser) {
+        showFormScreen();
+        return;
+      }
+      try {
+        await sendEmailVerification(auth.currentUser);
+        showAuthBanner('A new verification email has been sent! Check your inbox & spam folder.', false);
+      } catch (err) {
+        showAuthBanner('Could not resend email: ' + err.message, true);
+      }
+    });
+
+    // Switch account / Sign out from verification screen
+    document.getElementById('auth-switch-account-btn')?.addEventListener('click', async () => {
+      hideAuthBanner();
+      if (auth.currentUser) {
+        await signOut(auth);
+      }
+      showFormScreen();
     });
 
   } catch (e) {
@@ -2113,35 +2325,68 @@
 <!-- Auth modal -->
 <div id="auth-modal" class="auth-modal-overlay">
   <div class="auth-modal-box">
-    <div style="font-size:2rem;margin-bottom:12px;text-align:center;">&#x2728;</div>
-    <div style="font-size:18px;font-weight:700;color:#e8eaf0;margin-bottom:6px;text-align:center;">Welcome to Wayfinder</div>
-    <div style="font-size:13px;color:#9095a8;margin-bottom:24px;line-height:1.6;text-align:center;">
-      Sign in or create an account to start experiencing superhuman research capabilities.
+    <button class="auth-modal-close" onclick="hideAuthModal()" title="Close">&times;</button>
+    
+    <!-- Status / Error Banner -->
+    <div id="auth-banner" class="auth-banner" style="display: none;"></div>
+
+    <!-- 1. Form View (Login / Signup) -->
+    <div id="auth-form-view">
+      <div style="font-size:2rem;margin-bottom:12px;text-align:center;">&#x2728;</div>
+      <div style="font-size:18px;font-weight:700;color:#e8eaf0;margin-bottom:6px;text-align:center;">Welcome to Wayfinder</div>
+      <div style="font-size:13px;color:#9095a8;margin-bottom:20px;line-height:1.6;text-align:center;">
+        Sign in or create an account to start researching the live web with superhuman precision.
+      </div>
+      
+      <input id="auth-email" class="auth-input" type="email" placeholder="Email Address (e.g. name@domain.com)" autocomplete="email" />
+      <input id="auth-password" class="auth-input" type="password" placeholder="Password (min 6 characters)" style="margin-bottom:20px;" autocomplete="current-password" />
+      
+      <div style="display:flex;gap:12px;margin-bottom:20px;">
+        <button id="login-btn" class="auth-btn-primary">Log In</button>
+        <button id="signup-btn" class="auth-btn-secondary">Sign Up</button>
+      </div>
+      
+      <div style="text-align:center;font-size:11px;color:var(--text-muted);margin-bottom:20px;text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:center;gap:10px;">
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+        OR
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+      </div>
+      
+      <button id="google-btn" style="width:100%;background:white;color:#333;border:none;border-radius:10px;padding:12px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 8px rgba(255,255,255,0.1);transition:all 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+        <svg width="18" height="18" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+        </svg>
+        Continue with Google
+      </button>
     </div>
-    
-    <input id="auth-email" class="auth-input" type="email" placeholder="Email Address" />
-    <input id="auth-password" class="auth-input" type="password" placeholder="Password" style="margin-bottom:24px;" />
-    
-    <div style="display:flex;gap:12px;margin-bottom:20px;">
-      <button id="login-btn" class="auth-btn-primary">Log In</button>
-      <button id="signup-btn" class="auth-btn-secondary">Sign Up</button>
+
+    <!-- 2. Email Verification View -->
+    <div id="auth-verify-view" style="display: none; text-align: center;">
+      <div style="font-size: 2.8rem; margin-bottom: 12px;">&#x2709;&#xFE0F;</div>
+      <div style="font-size: 19px; font-weight: 700; color: #e8eaf0; margin-bottom: 8px;">Verify Your Email Address</div>
+      <div style="font-size: 13.5px; color: #9095a8; margin-bottom: 20px; line-height: 1.6;">
+        We have sent a verification link to<br>
+        <strong id="verify-email-display" style="color: #60a5fa; word-break: break-all;"></strong>.<br>
+        Please check your inbox (and spam folder) and click the link to activate your account.
+      </div>
+      
+      <button id="verify-check-btn" class="auth-btn-primary" style="width: 100%; margin-bottom: 12px; padding: 13px; font-size: 14.5px;">
+        &#x2713; I've Verified My Email
+      </button>
+
+      <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+        <button id="resend-verify-btn" class="auth-btn-secondary" style="font-size: 12.5px; padding: 10px;">
+          Resend Verification Link
+        </button>
+        <button id="auth-switch-account-btn" class="auth-btn-secondary" style="font-size: 12.5px; padding: 10px;">
+          Use Different Email
+        </button>
+      </div>
     </div>
-    
-    <div style="text-align:center;font-size:11px;color:var(--text-muted);margin-bottom:20px;text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:center;gap:10px;">
-      <div style="flex:1;height:1px;background:var(--border);"></div>
-      OR
-      <div style="flex:1;height:1px;background:var(--border);"></div>
-    </div>
-    
-    <button id="google-btn" style="width:100%;background:white;color:#333;border:none;border-radius:10px;padding:12px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 8px rgba(255,255,255,0.1);transition:all 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-      <svg width="18" height="18" viewBox="0 0 48 48">
-        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
-        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
-        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
-        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
-      </svg>
-      Continue with Google
-    </button>
+
   </div>
 </div>
 
