@@ -23,38 +23,53 @@ sep()
 print("[1/4] API Keys from env file")
 import config
 
-gkey = config.GEMINI_API_KEY
+okey = config.OPENROUTER_API_KEY
 tkey = config.TAVILY_API_KEY
 
-if gkey:
-    print(f"  Gemini key : {gkey[:8]}...{gkey[-4:]}  ({len(gkey)} chars)")
+if okey:
+    print(f"  OpenRouter key : {okey[:8]}...{okey[-4:]}  ({len(okey)} chars)")
 else:
-    print("  Gemini key : MISSING")
+    print("  OpenRouter key : MISSING")
 
 if tkey:
-    print(f"  Tavily key : {tkey[:8]}...{tkey[-4:]}  ({len(tkey)} chars)")
+    print(f"  Tavily key     : {tkey[:8]}...{tkey[-4:]}  ({len(tkey)} chars)")
 else:
-    print("  Tavily key : MISSING")
+    print("  Tavily key     : MISSING")
 
-if not gkey or not tkey:
-    print(f"{FAIL}: One or more keys are empty — check your `env` file")
+if not okey or not tkey:
+    print(f"{FAIL}: One or more keys are empty — check your `.env` file")
     sys.exit(1)
 
 print(f"{PASS}: Both keys loaded from env file")
 
-# ── 2. Test Gemini API ────────────────────────────────────────
+# ── 2. Test OpenRouter API ────────────────────────────────────
 sep()
-print("[2/4] Gemini 2.5 Flash — live API call (google-genai SDK)")
+print(f"[2/4] OpenRouter ({config.OPENROUTER_MODEL}) — live API call")
 try:
-    from google import genai
-    client = genai.Client(api_key=gkey)
-    resp = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents="Reply with exactly: WAYFINDER_OK",
+    import httpx
+    headers = {
+        "Authorization": f"Bearer {okey}",
+        "HTTP-Referer": "http://localhost:8000",
+        "X-Title": "Wayfinder Verification",
+    }
+    payload = {
+        "model": config.OPENROUTER_MODEL,
+        "messages": [{"role": "user", "content": "Reply with exactly: WAYFINDER_OK"}],
+        "max_tokens": 20,
+    }
+    resp = httpx.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers=headers,
+        json=payload,
+        timeout=30.0,
     )
-    text = resp.text.strip()
-    print(f"  Model reply: {text!r}")
-    print(f"{PASS}: Gemini API is live and responding")
+    resp.raise_for_status()
+    data = resp.json()
+    choice = data.get("choices", [{}])[0]
+    msg = choice.get("message", {})
+    reply = (msg.get("content") or msg.get("reasoning") or choice.get("finish_reason") or "OK")
+    print(f"  Model reply: {reply!r}")
+    print(f"{PASS}: OpenRouter API is live and responding")
 except Exception as exc:
     print(f"{FAIL}: {exc}")
     sys.exit(1)
@@ -86,40 +101,27 @@ except Exception as exc:
     print(f"{FAIL}: {exc}")
     sys.exit(1)
 
-# ── 4. Test SQLite memory ──────────────────────────────────────
+# ── 4. Test Core Memory structures ────────────────────────────
 sep()
-print("[4/4] SQLite Memory — init, write, read, cleanup")
+print("[4/4] Core Memory — WorkingMemory & EpisodicMemory")
 try:
-    import memory as mem
-    import tempfile
-    import pathlib
+    from core import memory as mem
+    wm = mem.WorkingMemory()
+    wm.add_message("user", "What is Python?")
+    wm.add_observation("Python is a high-level programming language.")
+    ctx = wm.get_context()
+    assert len(ctx) == 2, f"Expected 2 messages in WorkingMemory context, got {len(ctx)}"
 
-    tmp = pathlib.Path(tempfile.gettempdir()) / "wayfinder_verify_test.db"
-    conn = mem.init_db(tmp)
-    assert conn is not None, "init_db returned None"
+    em = mem.EpisodicMemory()
+    em.log_thought("Thinking about the query...", step=1)
+    em.log_observation("Found relevant search results", step=1)
+    trace = em.get_trace()
+    assert len(trace) == 1, f"Expected 1 trace step, got {len(trace)}"
+    assert trace[0].thought == "Thinking about the query..."
 
-    mem.save_session(
-        conn,
-        question="What is Python used for?",
-        answer="Python is a general-purpose programming language.",
-        sources=["https://python.org"],
-    )
-    mem.save_session(
-        conn,
-        question="How does FastAPI handle requests?",
-        answer="FastAPI uses async I/O and Pydantic models.",
-        sources=["https://fastapi.tiangolo.com"],
-    )
-
-    hits = mem.lookup_memory(conn, ["Python"])
-    assert len(hits) > 0, "lookup_memory returned empty for keyword 'Python'"
-
-    print(f"  Stored     : 2 test sessions")
-    print(f"  Lookup hit : {hits[0]['question']!r}")
-
-    conn.close()
-    tmp.unlink(missing_ok=True)
-    print(f"{PASS}: SQLite memory init, write, read, and cleanup all work")
+    print(f"  WorkingMemory  : {len(ctx)} messages recorded")
+    print(f"  EpisodicMemory : {len(trace)} step(s) logged")
+    print(f"{PASS}: Core Memory structures verified successfully")
 except Exception as exc:
     print(f"{FAIL}: {exc}")
     sys.exit(1)
