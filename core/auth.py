@@ -5,6 +5,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import firebase_admin
 from firebase_admin import auth
 import config
+from core.firebase import init_firebase
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,9 @@ def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Secur
             return "api_key_user"
 
         # 2. Check Firebase token
+        if not firebase_admin._apps:
+            init_firebase()
+
         if firebase_admin._apps:
             try:
                 decoded_token = auth.verify_id_token(token)

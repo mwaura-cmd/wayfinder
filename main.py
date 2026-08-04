@@ -22,6 +22,7 @@ from core.skills import SkillRegistry
 from observability.telemetry import TelemetryHub, TelemetryEvent, Payload
 from orchestration.topologies import run_sequential_agent
 from core.auth import get_current_user
+from core.firebase import init_firebase, get_db
 from providers.openrouter import OpenRouterProvider
 from providers.groq import GroqProvider
 from tools.tavily import TavilySearchExecutor
@@ -30,8 +31,9 @@ from llm_provider import get_llm_client_and_model
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 log = logging.getLogger(__name__)
 
-# Initialize memory database on startup
+# Initialize memory database and Firebase on startup
 memory_conn = memory.init_db()
+firebase_app = init_firebase()
 
 app = FastAPI(title="Wayfinder Research Agent v2", version="2.0.0", docs_url=None, redoc_url=None)
 

@@ -23,6 +23,7 @@ if _ENV_FILE.exists():
 # ── Firebase ──────────────────────────────────────────────────────────────────
 # Place your firebase-adminsdk.json inside the root directory, or
 # paste the raw JSON string into the FIREBASE_CREDENTIALS_JSON env variable.
+FIREBASE_PROJECT_ID: str = os.environ.get("FIREBASE_PROJECT_ID", "wayfinder-b98c7")
 FIREBASE_CREDENTIALS_PATH: str = os.environ.get(
     "FIREBASE_CREDENTIALS_PATH",
     str(Path(__file__).parent / "firebase-adminsdk.json")
