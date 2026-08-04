@@ -176,17 +176,22 @@
       padding: 8px 10px;
       border-radius: var(--radius-sm);
       cursor: pointer;
-      transition: background 0.12s;
-      margin-bottom: 2px;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+      margin-bottom: 3px;
       border: 1px solid transparent;
     }
     .history-item:hover {
       background: var(--wf-surface-sub);
       border-color: var(--wf-border);
+      transform: translateX(2px);
     }
-    .history-item.current {
-      background: var(--wf-surface-sub);
-      border-color: var(--wf-border);
+    .history-item.current, .history-item.active {
+      background: var(--wf-surface);
+      border-color: rgba(201, 151, 77, 0.4);
+    }
+    .history-item.current .history-item-icon, .history-item.active .history-item-icon {
+      border-color: var(--wf-accent);
+      color: var(--wf-accent);
     }
 
     .history-item-icon {
@@ -889,6 +894,7 @@
       flex-direction: column;
       align-items: center;
       transition: opacity 0.3s ease, visibility 0.3s ease;
+      perspective: 1200px;
     }
     .marketing-overlay.hidden {
       opacity: 0;
@@ -896,11 +902,44 @@
       pointer-events: none;
     }
 
+    /* Ambient mouse spotlight glow */
+    .marketing-overlay::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(
+        750px circle at var(--mouse-x, 50%) var(--mouse-y, 30%),
+        rgba(201, 151, 77, 0.055),
+        rgba(107, 144, 128, 0.03) 40%,
+        transparent 70%
+      );
+      z-index: 1;
+      transition: opacity 0.3s ease;
+    }
+
+    .marketing-bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+      background-size: 64px 64px;
+      pointer-events: none;
+      z-index: 0;
+      transform: translateY(var(--grid-parallax, 0px));
+      opacity: 0.8;
+      mask-image: radial-gradient(ellipse at 50% 30%, black 30%, transparent 85%);
+      -webkit-mask-image: radial-gradient(ellipse at 50% 30%, black 30%, transparent 85%);
+    }
+
     .marketing-nav {
       width: 100%; max-width: 1000px;
       padding: 24px 24px 16px;
       display: flex; justify-content: space-between; align-items: center;
       border-bottom: 1px solid var(--wf-border);
+      position: relative;
+      z-index: 2;
     }
     .marketing-logo {
       display: flex; align-items: center; gap: 10px;
@@ -964,6 +1003,10 @@
       padding: 72px 24px 48px;
       text-align: center;
       display: flex; flex-direction: column; align-items: center;
+      position: relative;
+      z-index: 2;
+      transform: translate3d(0, var(--hero-parallax, 0px), 0);
+      will-change: transform;
     }
     .marketing-title {
       font-family: var(--font-display);
@@ -993,6 +1036,8 @@
       padding: 40px 24px;
       display: flex;
       flex-direction: column;
+      position: relative;
+      z-index: 2;
     }
     .section-eyebrow {
       font-family: var(--font-mono);
@@ -1015,10 +1060,13 @@
       display: flex;
       align-items: flex-start;
       gap: 20px;
-      transition: border-color 0.15s;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+      position: relative;
+      z-index: 2;
     }
     .stacked-row:hover {
       border-color: rgba(107, 144, 128, 0.45);
+      transform: translateX(6px);
     }
     .stacked-row-num {
       font-family: var(--font-mono);
@@ -1050,6 +1098,8 @@
       padding: 0 24px 40px;
       display: flex; flex-direction: column;
       align-items: center;
+      position: relative;
+      z-index: 2;
     }
     .showcase-card {
       width: 100%;
@@ -1057,6 +1107,16 @@
       border: 1px solid var(--wf-border);
       border-radius: var(--radius);
       overflow: hidden;
+      position: relative;
+      z-index: 2;
+      transform: perspective(1000px) rotateX(var(--card-rot-x, 0deg)) rotateY(var(--card-rot-y, 0deg)) translate3d(0, var(--card-parallax, 0px), 0);
+      transform-style: preserve-3d;
+      transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+      box-shadow: 0 12px 36px -12px rgba(0, 0, 0, 0.5);
+    }
+    .showcase-card:hover {
+      border-color: rgba(201, 151, 77, 0.35);
+      box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.65), 0 0 25px -4px rgba(201, 151, 77, 0.08);
     }
     .showcase-card-header {
       padding: 12px 18px;
@@ -1269,6 +1329,7 @@
 
   <!-- Marketing / Landing View (Overlay) -->
   <div class="marketing-overlay" id="marketing-overlay">
+    <div class="marketing-bg-grid" id="marketing-bg-grid"></div>
     <div class="marketing-nav">
       <div class="marketing-logo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
@@ -2305,28 +2366,124 @@
       }
     }
 
+    var loadedSessionsMap = {};
+
     async function loadHistory() {
       try {
-        var res = await fetch('/history?limit=20', { headers: authHeaders() });
+        var res = await fetch('/history?limit=30', { headers: authHeaders() });
         if (!res.ok) return;
         var data = await res.json();
-        var sessions = data.sessions;
+        var sessions = data.sessions || [];
         var list = document.getElementById('history-list');
         if (!sessions || !sessions.length) {
           list.innerHTML = '<div class="history-empty"><div class="history-empty-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg></div>No sessions yet.<br>Start a search to begin.</div>';
           return;
         }
+        loadedSessionsMap = {};
         list.innerHTML = sessions.map(function(s) {
-          var q = s.question.length > 55 ? s.question.slice(0, 55) + '\u2026' : s.question;
-          return '<div class="history-item" onclick="fillQuestion({textContent: ' + JSON.stringify(s.question) + '})">' +
+          var taskId = s.task_id || ('sess_' + Math.random().toString(36).slice(2));
+          s.task_id = taskId;
+          loadedSessionsMap[taskId] = s;
+          var q = (s.question || '').length > 55 ? (s.question || '').slice(0, 55) + '\u2026' : (s.question || 'Untitled research');
+          var dateStr = s.created_at ? (s.created_at.slice(0, 10)) : '';
+          return '<div class="history-item" id="hist-' + escapeHtml(taskId) + '" onclick="displayHistoricalSession(' + JSON.stringify(taskId) + ')" title="' + escapeHtml(s.question || '') + '">' +
             '<div class="history-item-icon"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>' +
             '<div class="history-item-body">' +
               '<div class="history-item-text">' + escapeHtml(q) + '</div>' +
-              '<div class="history-date">' + s.created_at.slice(0, 10) + '</div>' +
+              (dateStr ? '<div class="history-date">' + escapeHtml(dateStr) + '</div>' : '') +
             '</div>' +
             '</div>';
         }).join('');
       } catch(e) { /* ignore */ }
+    }
+
+    async function displayHistoricalSession(taskId) {
+      var session = loadedSessionsMap[taskId];
+      if (!session) {
+        try {
+          var res = await fetch('/session/' + encodeURIComponent(taskId), { headers: authHeaders() });
+          if (res.ok) {
+            var d = await res.json();
+            if (d.session) {
+              session = d.session;
+              loadedSessionsMap[taskId] = session;
+            }
+          }
+        } catch(e) {}
+      }
+      if (!session) return;
+
+      if (currentEventSource) {
+        currentEventSource.close();
+        currentEventSource = null;
+      }
+
+      // Highlight selected session in sidebar
+      var allItems = document.querySelectorAll('.history-item');
+      allItems.forEach(function(item) { item.classList.remove('active', 'current'); });
+      var curItem = document.getElementById('hist-' + taskId);
+      if (curItem) curItem.classList.add('active', 'current');
+
+      // Switch to workspace view and reset UI with session question
+      resetUI(session.question || '');
+      qInput.value = session.question || '';
+      heroQInput.value = session.question || '';
+
+      // Reconstruct timeline nodes from persisted events
+      var events = session.events || [];
+      if (Array.isArray(events) && events.length > 0) {
+        events.forEach(function(ev) {
+          var payload = ev.payload || {};
+          if (payload.type === 'narrative_start') {
+            createNarrativeNode(payload.narrative || '');
+          } else if (payload.type === 'work_delta') {
+            var workText = payload.detail || payload.narrative || payload.label || '';
+            if (workText) addWorkItem(workText);
+          }
+        });
+      } else {
+        // Fallback summary node for older session entries
+        var searchCount = session.search_count || 1;
+        createNarrativeNode('Archived investigation \u2014 ' + searchCount + ' search step' + (searchCount !== 1 ? 's' : ''));
+        if (session.sources && session.sources.length) {
+          addWorkItem('Retrieved ' + session.sources.length + ' verified sources');
+        }
+      }
+
+      // Ensure all reconstructed nodes are marked completed
+      var nodes = timeline.querySelectorAll('.narrative-node');
+      nodes.forEach(function(node) {
+        node.classList.remove('active');
+        var dot = node.querySelector('.node-dot');
+        if (dot) dot.className = 'node-dot done';
+        var cursor = node.querySelector('.typing-cursor');
+        if (cursor) cursor.remove();
+      });
+
+      // Render the final answer card with metrics and sources
+      var meta = {
+        sources: session.sources || [],
+        search_count: session.search_count || 0,
+        elapsed_seconds: session.elapsed_seconds || 0,
+        hit_cap: false
+      };
+      if (session.final_answer) {
+        renderAnswer(session.final_answer, meta);
+        setStatus('idle', 'Archived session \u00B7 ' + (session.search_count || 0) + ' searches');
+      } else {
+        renderAnswer('No synthesized answer was recorded for this session.', meta);
+        setStatus('idle', 'Archived session');
+      }
+
+      // Automatically collapse sidebar on mobile upon tapping a session
+      if (window.innerWidth <= 780 && typeof toggleSidebar === 'function') {
+        toggleSidebar(false);
+      }
+
+      // Scroll smoothly to top of research screen
+      setTimeout(function() {
+        contentArea.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 50);
     }
 
     function escapeHtml(str) {
@@ -2337,6 +2494,69 @@
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
     }
+
+    /* ── Landing Page Mouse Spotlight, 3D Tilt & Parallax Scrolling ─── */
+    (function initMarketingEffects() {
+      var overlay = document.getElementById('marketing-overlay');
+      if (!overlay) return;
+
+      var prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) return;
+
+      var mouseX = window.innerWidth / 2;
+      var mouseY = window.innerHeight / 3;
+      var targetMouseX = mouseX;
+      var targetMouseY = mouseY;
+      var isMoving = false;
+
+      overlay.addEventListener('mousemove', function(e) {
+        targetMouseX = e.clientX;
+        targetMouseY = e.clientY;
+        if (!isMoving) {
+          isMoving = true;
+          requestAnimationFrame(updateMouse);
+        }
+      }, { passive: true });
+
+      function updateMouse() {
+        mouseX += (targetMouseX - mouseX) * 0.12;
+        mouseY += (targetMouseY - mouseY) * 0.12;
+        overlay.style.setProperty('--mouse-x', mouseX.toFixed(1) + 'px');
+        overlay.style.setProperty('--mouse-y', mouseY.toFixed(1) + 'px');
+
+        // Interactive 3D tilt on showcase cards
+        var cards = overlay.querySelectorAll('.showcase-card');
+        var viewH = window.innerHeight;
+        cards.forEach(function(card) {
+          var rect = card.getBoundingClientRect();
+          if (rect.top < viewH && rect.bottom > 0) {
+            var cardCenterX = rect.left + rect.width / 2;
+            var cardCenterY = rect.top + rect.height / 2;
+            var deltaX = (mouseX - cardCenterX) / (rect.width / 2);
+            var deltaY = (mouseY - cardCenterY) / (rect.height / 2);
+
+            var rotY = Math.max(-2.5, Math.min(2.5, deltaX * 2.5));
+            var rotX = Math.max(-2.5, Math.min(2.5, -deltaY * 2.5));
+
+            card.style.setProperty('--card-rot-x', rotX.toFixed(2) + 'deg');
+            card.style.setProperty('--card-rot-y', rotY.toFixed(2) + 'deg');
+          }
+        });
+
+        if (Math.abs(targetMouseX - mouseX) > 0.4 || Math.abs(targetMouseY - mouseY) > 0.4) {
+          requestAnimationFrame(updateMouse);
+        } else {
+          isMoving = false;
+        }
+      }
+
+      // Parallax scroll handler
+      overlay.addEventListener('scroll', function() {
+        var scrollTop = overlay.scrollTop;
+        overlay.style.setProperty('--hero-parallax', (scrollTop * 0.14).toFixed(1) + 'px');
+        overlay.style.setProperty('--grid-parallax', (scrollTop * 0.05).toFixed(1) + 'px');
+      }, { passive: true });
+    })();
   </script>
 
   <!-- Firebase SDK -->

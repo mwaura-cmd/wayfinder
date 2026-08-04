@@ -148,15 +148,31 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
             )
             log.info(f"Task {task_id} completed. Success: {result.success}")
             
-            # Save session to Firestore
+            # Save session to Firestore with full telemetry events, sources, and metrics
             db = get_db()
             if db:
                 try:
+                    trace = telemetry_hub.get_trace(task_id)
+                    serialized_events = [ev.model_dump() for ev in trace] if trace else []
+
+                    # Normalize sources
+                    formatted_sources = []
+                    for s in (result.sources or []):
+                        if isinstance(s, dict):
+                            formatted_sources.append(s)
+                        elif isinstance(s, str):
+                            formatted_sources.append({"url": s, "title": s})
+
                     db.collection("sessions").document(task_id).set({
                         "task_id": task_id,
                         "question": question,
                         "success": result.success,
                         "final_answer": result.final_output,
+                        "sources": formatted_sources,
+                        "steps_taken": result.steps_taken,
+                        "search_count": result.search_count,
+                        "elapsed_seconds": result.elapsed_seconds,
+                        "events": serialized_events,
                         "created_at": firestore.SERVER_TIMESTAMP,
                         "uid": uid,
                     })
@@ -200,7 +216,7 @@ async def stream_events(task_id: str, request: Request):
     )
 
 @app.get("/history")
-async def get_history(limit: int = 10, uid: str = Depends(get_current_user)):
+async def get_history(limit: int = 20, uid: str = Depends(get_current_user)):
     db = get_db()
     if not db:
         return {"sessions": [], "message": "Firebase not initialized. Semantic memory offline."}
@@ -224,3 +240,24 @@ async def get_history(limit: int = 10, uid: str = Depends(get_current_user)):
     except Exception as e:
         log.error(f"Error fetching history from Firestore: {e}")
         return {"sessions": [], "message": f"Error fetching history: {e}"}
+
+@app.get("/session/{task_id}")
+async def get_session_detail(task_id: str, uid: str = Depends(get_current_user)):
+    db = get_db()
+    if not db:
+        return {"session": None, "message": "Firebase not initialized."}
+    try:
+        doc = db.collection("sessions").document(task_id).get()
+        if not doc.exists:
+            return {"session": None, "message": "Session not found."}
+        data = doc.to_dict()
+        if data.get("uid") != uid:
+            return {"session": None, "message": "Unauthorized."}
+        created_at = data.get("created_at")
+        if created_at and hasattr(created_at, "isoformat"):
+            data["created_at"] = created_at.isoformat()
+        return {"session": data, "message": "Success"}
+    except Exception as e:
+        log.error(f"Error fetching session {task_id}: {e}")
+        return {"session": None, "message": f"Error: {e}"}
+
