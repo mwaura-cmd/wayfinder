@@ -181,14 +181,14 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
     task_id = str(uuid.uuid4())
     req_level = req.level if req.level in config.RESEARCH_LEVELS else config.DEFAULT_RESEARCH_LEVEL
 
-    # Resolve or create thread upfront
+    # Resolve or create thread upfront scoped to user UID
     conn = memory.init_db()
     active_thread_id = req.thread_id
     prior_messages = []
     if conn:
-        active_thread_id = memory.get_or_create_thread(conn, req.thread_id, question)
+        active_thread_id = memory.get_or_create_thread(conn, req.thread_id, question, user_id=uid)
         if req.thread_id:
-            all_msgs = memory.get_thread_messages(conn, req.thread_id)
+            all_msgs = memory.get_thread_messages(conn, req.thread_id, user_id=uid)
             # Pass up to the last 6 messages to keep prompt focused
             prior_messages = all_msgs[-6:] if len(all_msgs) > 6 else all_msgs
 
@@ -236,7 +236,7 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
             )
             log.info(f"Task {task_id} completed. Success: {result.success}, Model: {result.model_used}, Level: {result.level}")
 
-            # 1. Save to SQLite memory store (threads & messages)
+            # 1. Save to SQLite memory store (threads & messages) scoped to user UID
             db_conn = memory.init_db()
             saved_msg_id = 0
             if db_conn:
@@ -248,8 +248,9 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
                     sources=result.sources,
                     model_used=result.model_used,
                     level=result.level,
+                    user_id=uid,
                 )
-                log.info(f"Saved message {saved_msg_id} to thread {active_thread_id}")
+                log.info(f"Saved message {saved_msg_id} to thread {active_thread_id} for user {uid}")
 
             # 2. Save session to Firestore with full telemetry events, sources, and metrics
             db = get_db()
@@ -268,7 +269,7 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
 
                     db.collection("sessions").document(task_id).set({
                         "task_id": task_id,
-                        "thread_id": saved_thread_id,
+                        "thread_id": active_thread_id,
                         "message_id": saved_msg_id,
                         "question": question,
                         "success": result.success,
@@ -293,7 +294,7 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
                         metadata={
                             "question": question,
                             "task_id": task_id,
-                            "thread_id": saved_thread_id,
+                            "thread_id": active_thread_id,
                             "uid": uid
                         }
                     )
@@ -332,7 +333,7 @@ async def stream_events(task_id: str, request: Request):
 @app.get("/history")
 async def get_history(limit: int = 30, uid: str = Depends(get_current_user)):
     conn = memory.init_db()
-    threads = memory.get_threads(conn, limit=limit) if conn else []
+    threads = memory.get_threads(conn, user_id=uid, limit=limit) if conn else []
     
     # Return threads both under "threads" and "sessions" for full backward compatibility
     return {
@@ -347,7 +348,7 @@ async def get_thread_detail(thread_id: int, uid: str = Depends(get_current_user)
     if not conn:
         raise HTTPException(status_code=500, detail="Database unavailable")
     
-    thread = memory.get_thread(conn, thread_id)
+    thread = memory.get_thread(conn, thread_id, user_id=uid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
     
@@ -359,7 +360,7 @@ async def get_session_or_thread(identifier: str, uid: str = Depends(get_current_
     
     # Check if identifier is an integer thread ID
     if identifier.isdigit() and conn:
-        thread = memory.get_thread(conn, int(identifier))
+        thread = memory.get_thread(conn, int(identifier), user_id=uid)
         if thread:
             return {"thread": thread, "session": thread, "message": "Success"}
 
@@ -382,7 +383,7 @@ async def get_session_or_thread(identifier: str, uid: str = Depends(get_current_
     if conn and identifier.startswith("thread_"):
         try:
             tid = int(identifier.split("_")[1])
-            thread = memory.get_thread(conn, tid)
+            thread = memory.get_thread(conn, tid, user_id=uid)
             if thread:
                 return {"thread": thread, "session": thread, "message": "Success"}
         except Exception:
@@ -396,7 +397,7 @@ async def update_message_feedback(message_id: int, req: FeedbackRequest, uid: st
     if not conn:
         raise HTTPException(status_code=500, detail="Database unavailable")
 
-    success = memory.update_feedback(conn, message_id, req.feedback, req.feedback_note)
+    success = memory.update_feedback(conn, message_id, req.feedback, req.feedback_note, user_id=uid)
     if not success:
         raise HTTPException(status_code=404, detail="Message not found or update failed")
 

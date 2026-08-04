@@ -2,7 +2,7 @@
 memory.py — Persistent conversational memory store for Wayfinder.
 
 Uses SQLite (Python stdlib). Manages threads and multi-turn messages,
-automatic startup migration from legacy sessions schema, and thread-level
+automatic startup migration, per-user scoping by Firebase UID, and thread-level
 retention management.
 """
 import sqlite3
@@ -21,6 +21,7 @@ log = logging.getLogger(__name__)
 _SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS threads (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     TEXT    NOT NULL DEFAULT 'unknown_user',
     title       TEXT    NOT NULL,   -- first question's text, truncated
     created_at  TEXT    NOT NULL,
     updated_at  TEXT    NOT NULL
@@ -32,7 +33,7 @@ CREATE TABLE IF NOT EXISTS messages (
     question      TEXT    NOT NULL,
     answer        TEXT    NOT NULL,
     sources       TEXT    NOT NULL,   -- JSON array, same as before
-    model_used    TEXT,               -- the actual model OpenRouter routed to
+    model_used    TEXT,               -- the actual model provider routed to
     level         TEXT    NOT NULL DEFAULT 'standard',  -- 'standard' | 'extended'
     feedback      TEXT,               -- 'up' | 'down' | NULL
     feedback_note TEXT,               -- optional user comment, NULL if none
@@ -49,6 +50,24 @@ def _connect(path: Path) -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode=WAL;")  # concurrent read safety
     conn.execute("PRAGMA foreign_keys=ON;")   # enable cascade deletes
     return conn
+
+
+def _migrate_user_id(conn: sqlite3.Connection) -> None:
+    """Ensure threads table has user_id column and index."""
+    try:
+        cursor = conn.cursor()
+        cols = [r["name"] for r in cursor.execute("PRAGMA table_info(threads);").fetchall()]
+        if cols and "user_id" not in cols:
+            log.info("Migrating threads table: adding user_id column...")
+            cursor.execute("ALTER TABLE threads ADD COLUMN user_id TEXT NOT NULL DEFAULT 'unknown_user';")
+            conn.commit()
+            log.info("Migration successful: user_id column added to threads table.")
+        
+        # Safe to create index now
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_threads_user_id ON threads (user_id);")
+        conn.commit()
+    except sqlite3.DatabaseError as exc:
+        log.error("Failed to migrate user_id column on threads table: %s", exc)
 
 
 def _run_migration(conn: sqlite3.Connection) -> None:
@@ -80,8 +99,8 @@ def _run_migration(conn: sqlite3.Connection) -> None:
 
             # Create thread
             cursor.execute(
-                "INSERT INTO threads (title, created_at, updated_at) VALUES (?, ?, ?);",
-                (title, created_at, created_at)
+                "INSERT INTO threads (user_id, title, created_at, updated_at) VALUES (?, ?, ?, ?);",
+                ("unknown_user", title, created_at, created_at)
             )
             thread_id = cursor.lastrowid
 
@@ -132,7 +151,7 @@ def _run_migration(conn: sqlite3.Connection) -> None:
 def init_db(path: Optional[Path] = None) -> Optional[sqlite3.Connection]:
     """
     Open (or create) the SQLite DB and return a connection.
-    Initializes tables and executes any required migration.
+    Initializes tables, ensures user_id schema column, and executes any required migration.
     Degrades gracefully — if unreadable, returns None.
     """
     db_path = path or config.DB_PATH
@@ -141,6 +160,9 @@ def init_db(path: Optional[Path] = None) -> Optional[sqlite3.Connection]:
         # Create schema if not exists
         conn.executescript(_SCHEMA_SQL)
         conn.commit()
+
+        # Migrate user_id column if threads table was created with older schema
+        _migrate_user_id(conn)
 
         # Run migration if legacy sessions table exists
         _run_migration(conn)
@@ -158,29 +180,40 @@ def init_db(path: Optional[Path] = None) -> Optional[sqlite3.Connection]:
 
 # ── Thread Management ─────────────────────────────────────────────────────────
 
-def create_thread(conn: sqlite3.Connection, title: str) -> int:
-    """Create a new research thread and return its ID."""
+def create_thread(conn: sqlite3.Connection, title: str, user_id: str = "unknown_user") -> int:
+    """Create a new research thread for a user and return its ID."""
     now = datetime.now(timezone.utc).isoformat()
     clean_title = (title or "Untitled Research")[:60].strip()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO threads (title, created_at, updated_at) VALUES (?, ?, ?);",
-        (clean_title, now, now)
+        "INSERT INTO threads (user_id, title, created_at, updated_at) VALUES (?, ?, ?, ?);",
+        (user_id, clean_title, now, now)
     )
     conn.commit()
     return cursor.lastrowid
 
 
-def get_or_create_thread(conn: sqlite3.Connection, thread_id: Optional[int], first_question: str) -> int:
-    """Get an existing thread ID if valid, otherwise create a new thread."""
+def get_or_create_thread(
+    conn: sqlite3.Connection,
+    thread_id: Optional[int],
+    first_question: str,
+    user_id: str = "unknown_user",
+) -> int:
+    """Get an existing thread ID if valid and authorized, otherwise create a new thread."""
     if thread_id is not None:
         try:
-            row = conn.execute("SELECT id FROM threads WHERE id = ?;", (int(thread_id),)).fetchone()
+            row = conn.execute(
+                """
+                SELECT id FROM threads 
+                WHERE id = ? AND (user_id = ? OR user_id = 'unknown_user' OR ? = 'guest_user');
+                """,
+                (int(thread_id), user_id, user_id)
+            ).fetchone()
             if row:
                 return int(row["id"])
         except Exception:
             pass
-    return create_thread(conn, first_question)
+    return create_thread(conn, first_question, user_id=user_id)
 
 
 def save_message(
@@ -191,6 +224,7 @@ def save_message(
     sources: List[Any],
     model_used: Optional[str] = None,
     level: str = "standard",
+    user_id: Optional[str] = None,
 ) -> int:
     """
     Append a completed message to an existing thread.
@@ -224,11 +258,21 @@ def save_message(
         )
         msg_id = cursor.lastrowid
 
-        # Update thread's updated_at
-        cursor.execute(
-            "UPDATE threads SET updated_at = ? WHERE id = ?;",
-            (now, thread_id)
-        )
+        # Update thread's updated_at (and user_id if previously unknown)
+        if user_id and user_id != "unknown_user":
+            cursor.execute(
+                """
+                UPDATE threads 
+                SET updated_at = ?, user_id = CASE WHEN user_id = 'unknown_user' THEN ? ELSE user_id END
+                WHERE id = ?;
+                """,
+                (now, user_id, thread_id)
+            )
+        else:
+            cursor.execute(
+                "UPDATE threads SET updated_at = ? WHERE id = ?;",
+                (now, thread_id)
+            )
         conn.commit()
 
         _prune(conn)
@@ -246,6 +290,7 @@ def save_session(
     model_used: Optional[str] = None,
     level: str = "standard",
     thread_id: Optional[int] = None,
+    user_id: str = "unknown_user",
 ) -> Tuple[int, int]:
     """
     Backwards-compatible wrapper.
@@ -254,8 +299,8 @@ def save_session(
     """
     if conn is None:
         return (0, 0)
-    tid = get_or_create_thread(conn, thread_id, question)
-    mid = save_message(conn, tid, question, answer, sources, model_used, level)
+    tid = get_or_create_thread(conn, thread_id, question, user_id=user_id)
+    mid = save_message(conn, tid, question, answer, sources, model_used, level, user_id=user_id)
     return (tid, mid)
 
 
@@ -264,11 +309,26 @@ def update_feedback(
     message_id: int,
     feedback: Optional[str],
     feedback_note: Optional[str] = None,
+    user_id: Optional[str] = None,
 ) -> bool:
     """Update feedback ('up' | 'down' | None) and feedback_note on a message."""
     if conn is None:
         return False
     try:
+        if user_id and user_id not in ("guest_user", "unknown_user"):
+            # Verify user ownership
+            row = conn.execute(
+                """
+                SELECT m.id FROM messages m
+                JOIN threads t ON m.thread_id = t.id
+                WHERE m.id = ? AND (t.user_id = ? OR t.user_id = 'unknown_user');
+                """,
+                (message_id, user_id)
+            ).fetchone()
+            if not row:
+                log.warning("User %s unauthorized to update feedback on message %s", user_id, message_id)
+                return False
+
         conn.execute(
             """
             UPDATE messages
@@ -323,33 +383,60 @@ def _prune(conn: sqlite3.Connection) -> None:
 
 # ── Read & Retrieval ──────────────────────────────────────────────────────────
 
-def get_threads(conn: sqlite3.Connection, limit: int = 30) -> List[Dict[str, Any]]:
-    """Return most recently updated threads with message counts and latest preview."""
+def get_threads(
+    conn: sqlite3.Connection,
+    user_id: Optional[str] = None,
+    limit: int = 30,
+) -> List[Dict[str, Any]]:
+    """Return most recently updated threads scoped to user_id (or all if user_id is None)."""
     if conn is None:
         return []
     try:
-        rows = conn.execute(
-            """
-            SELECT 
-                t.id,
-                t.title,
-                t.created_at,
-                t.updated_at,
-                COUNT(m.id) AS message_count,
-                MAX(m.created_at) AS last_message_at
-            FROM threads t
-            LEFT JOIN messages m ON t.id = m.thread_id
-            GROUP BY t.id
-            ORDER BY t.updated_at DESC
-            LIMIT ?;
-            """,
-            (limit,)
-        ).fetchall()
+        if user_id:
+            rows = conn.execute(
+                """
+                SELECT 
+                    t.id,
+                    t.user_id,
+                    t.title,
+                    t.created_at,
+                    t.updated_at,
+                    COUNT(m.id) AS message_count,
+                    MAX(m.created_at) AS last_message_at
+                FROM threads t
+                LEFT JOIN messages m ON t.id = m.thread_id
+                WHERE t.user_id = ? OR (? = 'guest_user' AND t.user_id = 'unknown_user')
+                GROUP BY t.id
+                ORDER BY t.updated_at DESC
+                LIMIT ?;
+                """,
+                (user_id, user_id, limit)
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT 
+                    t.id,
+                    t.user_id,
+                    t.title,
+                    t.created_at,
+                    t.updated_at,
+                    COUNT(m.id) AS message_count,
+                    MAX(m.created_at) AS last_message_at
+                FROM threads t
+                LEFT JOIN messages m ON t.id = m.thread_id
+                GROUP BY t.id
+                ORDER BY t.updated_at DESC
+                LIMIT ?;
+                """,
+                (limit,)
+            ).fetchall()
 
         threads = []
         for r in rows:
             threads.append({
                 "id": r["id"],
+                "user_id": r["user_id"],
                 "title": r["title"],
                 "created_at": r["created_at"],
                 "updated_at": r["updated_at"],
@@ -362,15 +449,28 @@ def get_threads(conn: sqlite3.Connection, limit: int = 30) -> List[Dict[str, Any
         return []
 
 
-def get_thread(conn: sqlite3.Connection, thread_id: int) -> Optional[Dict[str, Any]]:
-    """Return a thread and all its ordered messages."""
+def get_thread(
+    conn: sqlite3.Connection,
+    thread_id: int,
+    user_id: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    """Return a thread and all its ordered messages, verifying user ownership if user_id is provided."""
     if conn is None:
         return None
     try:
-        t_row = conn.execute(
-            "SELECT id, title, created_at, updated_at FROM threads WHERE id = ?;",
-            (thread_id,)
-        ).fetchone()
+        if user_id:
+            t_row = conn.execute(
+                """
+                SELECT id, user_id, title, created_at, updated_at FROM threads 
+                WHERE id = ? AND (user_id = ? OR user_id = 'unknown_user' OR ? = 'guest_user');
+                """,
+                (thread_id, user_id, user_id)
+            ).fetchone()
+        else:
+            t_row = conn.execute(
+                "SELECT id, user_id, title, created_at, updated_at FROM threads WHERE id = ?;",
+                (thread_id,)
+            ).fetchone()
 
         if not t_row:
             return None
@@ -408,6 +508,7 @@ def get_thread(conn: sqlite3.Connection, thread_id: int) -> Optional[Dict[str, A
 
         return {
             "id": t_row["id"],
+            "user_id": t_row["user_id"],
             "title": t_row["title"],
             "created_at": t_row["created_at"],
             "updated_at": t_row["updated_at"],
@@ -418,33 +519,48 @@ def get_thread(conn: sqlite3.Connection, thread_id: int) -> Optional[Dict[str, A
         return None
 
 
-def get_thread_messages(conn: sqlite3.Connection, thread_id: int) -> List[Dict[str, Any]]:
+def get_thread_messages(
+    conn: sqlite3.Connection,
+    thread_id: int,
+    user_id: Optional[str] = None,
+) -> List[Dict[str, Any]]:
     """Return chronological list of Q&A exchanges for a thread."""
-    thread = get_thread(conn, thread_id)
+    thread = get_thread(conn, thread_id, user_id=user_id)
     return thread.get("messages", []) if thread else []
 
 
 def lookup_memory(
     conn: sqlite3.Connection,
     keywords: List[str],
+    user_id: Optional[str] = None,
     limit: int = config.MEMORY_LOOKUP_LIMIT,
 ) -> List[Dict[str, Any]]:
     """
-    Search past messages across threads matching any of the given keywords.
-    Used for cross-thread recall on initial queries.
+    Search past messages across threads matching any of the given keywords,
+    scoped to the authenticated user.
     """
     if conn is None or not keywords:
         return []
     try:
         clauses = " OR ".join(["LOWER(m.question) LIKE ?" for _ in keywords])
-        params = [f"%{kw.lower()}%" for kw in keywords] + [limit]
+        params = [f"%{kw.lower()}%" for kw in keywords]
+
+        if user_id:
+            user_clause = "AND (t.user_id = ? OR (? = 'guest_user' AND t.user_id = 'unknown_user'))"
+            params.extend([user_id, user_id])
+        else:
+            user_clause = ""
+
+        params.append(limit)
+
         rows = conn.execute(
             f"""
             SELECT 
                 m.id, m.thread_id, m.question, m.answer,
                 m.sources, m.model_used, m.level, m.created_at
             FROM messages m
-            WHERE {clauses}
+            JOIN threads t ON m.thread_id = t.id
+            WHERE ({clauses}) {user_clause}
             ORDER BY m.created_at DESC
             LIMIT ?;
             """,

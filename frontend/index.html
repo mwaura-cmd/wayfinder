@@ -2616,9 +2616,8 @@
       }
 
       try {
-        await fetch('/messages/' + encodeURIComponent(messageId) + '/feedback', {
+        await authenticatedFetch('/messages/' + encodeURIComponent(messageId) + '/feedback', {
           method: 'POST',
-          headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
           body: JSON.stringify({ feedback: feedbackType })
         });
       } catch(e) {
@@ -2632,12 +2631,11 @@
       var note    = inputEl ? inputEl.value.trim() : '';
 
       try {
-        var res = await fetch('/messages/' + encodeURIComponent(messageId) + '/feedback', {
+        var res = await authenticatedFetch('/messages/' + encodeURIComponent(messageId) + '/feedback', {
           method: 'POST',
-          headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
           body: JSON.stringify({ feedback: 'down', feedback_note: note })
         });
-        if (res.ok) {
+        if (res && res.ok) {
           if (msgEl) msgEl.textContent = 'Feedback saved' + (note ? ': ' + note : '');
           var notePanel = document.getElementById('feedback-note-panel-' + messageId);
           if (notePanel) notePanel.style.display = 'none';
@@ -2649,8 +2647,61 @@
 
     window.currentIdToken = '';
 
-    function authHeaders() {
-      return window.currentIdToken ? { 'Authorization': 'Bearer ' + window.currentIdToken } : {};
+    async function getAuthToken(forceRefresh = false) {
+      if (window.firebaseAuth && window.firebaseAuth.currentUser) {
+        try {
+          const token = await window.firebaseAuth.currentUser.getIdToken(forceRefresh);
+          window.currentIdToken = token;
+          return token;
+        } catch (err) {
+          console.warn('Failed to get Firebase ID token:', err);
+        }
+      }
+      return window.currentIdToken || '';
+    }
+
+    async function authHeaders(forceRefresh = false) {
+      const token = await getAuthToken(forceRefresh);
+      return token ? { 'Authorization': 'Bearer ' + token } : {};
+    }
+
+    async function authenticatedFetch(url, options = {}) {
+      let token = await getAuthToken(false);
+      
+      // If user is not authenticated, prompt sign in and stop
+      if (!token && (!window.firebaseAuth || !window.firebaseAuth.currentUser)) {
+        showAuthModal();
+        throw new Error('Authentication required. Please sign in.');
+      }
+
+      const headers = Object.assign({}, options.headers || {});
+      if (token) {
+        headers['Authorization'] = 'Bearer ' + token;
+      }
+      if (options.body && typeof options.body === 'string' && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+      }
+
+      let res = await fetch(url, Object.assign({}, options, { headers }));
+
+      // If 401 Unauthorized, refresh token once (getIdToken(true)) and retry
+      if (res.status === 401 && window.firebaseAuth && window.firebaseAuth.currentUser) {
+        try {
+          token = await getAuthToken(true);
+          if (token) {
+            headers['Authorization'] = 'Bearer ' + token;
+            res = await fetch(url, Object.assign({}, options, { headers }));
+          }
+        } catch (refreshErr) {
+          console.warn('Token refresh on 401 failed:', refreshErr);
+        }
+      }
+
+      if (res.status === 401) {
+        showAuthModal();
+      }
+
+      return res;
     }
 
     function showAuthModal() {
@@ -2853,9 +2904,8 @@
       resetActiveExchange(question || (attachedFiles.length ? "Document Analysis: " + attachedFiles.map(f => f.name).join(", ") : ""));
 
       try {
-        var res = await fetch('/research', {
+        var res = await authenticatedFetch('/research', {
           method: 'POST',
-          headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
           body: JSON.stringify({
             question: question,
             thread_id: currentThreadId,
@@ -2864,7 +2914,7 @@
           }),
         });
 
-        if (res.status === 401) {
+        if (!res || res.status === 401) {
           submitBtn.disabled = false; qInput.disabled = false;
           heroQInput.disabled = false; heroSubmitBtn.disabled = false;
           setStatus('idle', 'Ready'); showAuthModal(); return;
@@ -2881,8 +2931,9 @@
         attachedFiles = [];
         renderAttachedFiles();
 
-        var streamUrl = window.currentIdToken
-          ? '/stream/' + task_id + '?token=' + encodeURIComponent(window.currentIdToken)
+        var token = await getAuthToken();
+        var streamUrl = token
+          ? '/stream/' + task_id + '?token=' + encodeURIComponent(token)
           : '/stream/' + task_id;
 
         var evtSource = new EventSource(streamUrl);
@@ -2982,8 +3033,8 @@
 
     async function loadHistory() {
       try {
-        var res = await fetch('/history?limit=30', { headers: authHeaders() });
-        if (!res.ok) return;
+        var res = await authenticatedFetch('/history?limit=30');
+        if (!res || !res.ok) return;
         var data = await res.json();
         var threads = data.sessions || data.threads || [];
         var list = document.getElementById('history-list');
@@ -3023,8 +3074,8 @@
 
       var thread = loadedThreadsMap[threadId];
       try {
-        var res = await fetch('/thread/' + encodeURIComponent(threadId), { headers: authHeaders() });
-        if (res.ok) {
+        var res = await authenticatedFetch('/thread/' + encodeURIComponent(threadId));
+        if (res && res.ok) {
           var d = await res.json();
           if (d.thread) {
             thread = d.thread;

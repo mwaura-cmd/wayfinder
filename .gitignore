@@ -60,4 +60,8 @@ desktop.ini
 *.log
 logs/
 
+# ── Firebase & Service Account Credentials ──────────────────────────────────
 firebase-adminsdk.json
+*adminsdk*.json
+serviceAccountKey.json
+*.service-account.json
