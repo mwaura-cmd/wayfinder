@@ -35,6 +35,7 @@
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button svg, .input-action-btn svg, .sidebar-toggle-btn svg, .sidebar-collapse-btn svg, .level-btn svg { pointer-events: none; }
     html, body { height: 100%; overflow: hidden; }
     body {
       font-family: var(--font-sans);
@@ -2069,7 +2070,7 @@
             <button type="button" class="level-btn active" data-level="standard" onclick="setResearchLevel('standard')">Standard</button>
             <button type="button" class="level-btn" data-level="extended" onclick="setResearchLevel('extended')">Extended</button>
           </div>
-          <button id="submit-btn">Research</button>
+          <button type="button" id="submit-btn">Research</button>
         </div>
         <div id="topbar-attached-files" class="attached-files-container" style="padding: 0 20px; display: none;"></div>
 
@@ -2104,7 +2105,7 @@
                   </svg>
                 </button>
                 <input id="hero-question-input" type="text" placeholder="What do you want to research?" autocomplete="off" spellcheck="true" />
-                <button id="hero-submit-btn">Start Research</button>
+                <button type="button" id="hero-submit-btn">Start Research</button>
               </div>
               <div class="level-selector" id="hero-level-selector" style="margin-top: 12px;">
                 <button type="button" class="level-btn active" data-level="standard" onclick="setResearchLevel('standard')">Standard (Fast)</button>
@@ -2311,7 +2312,7 @@
           '<div class="node-line"></div>' +
         '</div>' +
         '<div class="node-body">' +
-          '<div class="narrative-header" onclick="toggleNode('' + nodeId + '')">' +
+          '<div class="narrative-header" onclick="toggleNode(\'' + nodeId + '\')">' +
             '<div class="narrative-text">' + escapeHtml(text) + '</div>' +
             '<div class="narrative-toggle" style="display: none;">&#x25BE;</div>' +
           '</div>' +
@@ -2421,10 +2422,10 @@
             '<div class="feedback-row">' +
               '<div class="feedback-group">' +
                 '<span class="feedback-label">Feedback</span>' +
-                '<button type="button" class="feedback-btn' + (isUp ? ' active up' : '') + '" onclick="sendFeedback(' + JSON.stringify(msgId) + ', 'up', this)">' +
+                '<button type="button" class="feedback-btn' + (isUp ? ' active up' : '') + '" onclick="sendFeedback(' + JSON.stringify(msgId) + ', \'up\', this)">' +
                   '<span>&#x1F44D;</span> Useful' +
                 '</button>' +
-                '<button type="button" class="feedback-btn' + (isDown ? ' active down' : '') + '" onclick="sendFeedback(' + JSON.stringify(msgId) + ', 'down', this)">' +
+                '<button type="button" class="feedback-btn' + (isDown ? ' active down' : '') + '" onclick="sendFeedback(' + JSON.stringify(msgId) + ', \'down\', this)">' +
                   '<span>&#x1F44E;</span> Inaccurate' +
                 '</button>' +
               '</div>' +
@@ -3237,6 +3238,25 @@
       if (el1) el1.textContent = yr;
       if (el2) el2.textContent = yr;
     })();
+
+    // Expose workspace functions to window for inline onclick handlers
+    window.setResearchLevel = setResearchLevel;
+    window.goHome = goHome;
+    window.scrollToBottom = scrollToBottom;
+    window.fillQuestion = fillQuestion;
+    window.toggleNode = toggleNode;
+    window.toggleExchangeTimeline = toggleExchangeTimeline;
+    window.sendFeedback = sendFeedback;
+    window.submitFeedbackNote = submitFeedbackNote;
+    window.displayHistoricalThread = displayHistoricalThread;
+    window.loadHistory = loadHistory;
+    window.toggleSidebar = toggleSidebar;
+    window.triggerFileUpload = triggerFileUpload;
+    window.toggleVoiceSearch = toggleVoiceSearch;
+    window.handleFileSelect = handleFileSelect;
+    window.removeAttachedFile = removeAttachedFile;
+    window.startResearch = startResearch;
+
   </script>
 
   <!-- Firebase SDK -->
