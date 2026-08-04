@@ -31,11 +31,11 @@ class AgentAction(BaseModel):
 
 
 # ── Compiled patterns (text-based ReAct format) ──────────────────────────────
-_NARRATIVE_RE  = re.compile(r"NARRATIVE:\s*(.+?)(?=\nThought:|\nAction:|\nFinal Answer:|$)", re.IGNORECASE | re.DOTALL)
-_THOUGHT_RE    = re.compile(r"Thought:\s*(.+?)(?=\nAction:|\nFinal Answer:|$)", re.IGNORECASE | re.DOTALL)
-_ACTION_RE     = re.compile(r"Action:\s*([\w_]+)", re.IGNORECASE)
-_INPUT_RE      = re.compile(r"Action Input:\s*(\{.*)", re.IGNORECASE | re.DOTALL)
-_FINAL_RE      = re.compile(r"Final Answer:\s*(.+)", re.IGNORECASE | re.DOTALL)
+_NARRATIVE_RE  = re.compile(r"(?:\*\*|###\s*)?(?:NARRATIVE|NARRATIVE_START)(?:\*\*)?:\s*(.+?)(?=\n(?:\*\*|###\s*)?(?:Thought|Action|Final Answer|FINAL_ANSWER)|\Z)", re.IGNORECASE | re.DOTALL)
+_THOUGHT_RE    = re.compile(r"(?:\*\*|###\s*)?Thought(?:\*\*)?:\s*(.+?)(?=\n(?:\*\*|###\s*)?(?:Action|Final Answer|FINAL_ANSWER)|\Z)", re.IGNORECASE | re.DOTALL)
+_ACTION_RE     = re.compile(r"(?:\*\*|###\s*)?Action(?:\*\*)?:\s*([\w_]+)", re.IGNORECASE)
+_INPUT_RE      = re.compile(r"(?:\*\*|###\s*)?Action Input(?:\*\*)?:\s*(\{.*)", re.IGNORECASE | re.DOTALL)
+_FINAL_RE      = re.compile(r"(?:\*\*|###\s*)?(?:Final Answer|FINAL_ANSWER)(?:\*\*)?:\s*(.+)", re.IGNORECASE | re.DOTALL)
 
 
 def _extract_first_json(text: str) -> dict:

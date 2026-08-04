@@ -141,7 +141,7 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
                     "and synthesising what you find — not by recalling training data.\n\n"
                     "If the user provides attached documents, incorporate their content into your analysis.\n"
                     "Always use web_search to look up current information before answering.\n"
-                    "When you have enough evidence, produce your Final Answer."
+                    "When you have enough evidence, produce your Final Answer directly without narrating intent beforehand."
                 ),
                 telemetry=telemetry_hub,
                 track_id=task_id,   # ← same ID the frontend subscribes to

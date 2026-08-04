@@ -57,6 +57,7 @@ Rules:
 - NARRATIVE must always be present and must be a natural, specific, first-person sentence.
 - Never skip the NARRATIVE line.
 - Never mix Format A and Format B in one response.
+- Do NOT produce a narrative node that merely announces you are about to answer (e.g. "I can now provide a summary", "I have gathered enough evidence") without immediately including the actual Final Answer: block in that same response. If you have enough evidence to answer, output the Final Answer: block directly — do not narrate your intent to answer as a separate step first.
 - After each Observation you receive, output the next Format A or Format B — never stop mid-way.
 - When in doubt, do one more search rather than guessing."""
 

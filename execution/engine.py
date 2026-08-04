@@ -3,13 +3,13 @@ import datetime
 from typing import List, Optional
 from pydantic import BaseModel
 
-from core.provider import BaseLLMProvider, LLMRequest
+from core.provider import BaseLLMProvider, LLMRequest, Message
 from core.tools import ToolDefinition, ToolResult
 from core.skills import SkillDefinition
 from core.memory import WorkingMemory, EpisodicMemory
 from observability.telemetry import TelemetryHub, TelemetryEvent, Payload
 
-from execution.parser import OutputParser, ActionType
+from execution.parser import OutputParser, ActionType, AgentAction
 from execution.governor import IterationGovernor
 from execution.conditions import StopCondition
 from execution.errors import ErrorHandler
@@ -47,6 +47,7 @@ class LoopEngine:
         run_start = datetime.datetime.now(datetime.timezone.utc)
         search_count = 0
         sources: List[str] = []
+        stall_turn_count = 0
 
         while True:
             # 1. Tick governor
@@ -90,10 +91,13 @@ class LoopEngine:
                 )
             ))
 
-            # 6. Execute Tool/Skill if any
+            # 6. Execute Tool/Skill if any & manage stall tracking
             if action.type == ActionType.TOOL_CALL and action.tool_call:
                 tool_def = next((t for t in tools if t.name == action.tool_call.tool_name), None)
                 if tool_def:
+                    # Legitimate tool execution resets the stall counter
+                    stall_turn_count = 0
+
                     result = await tool_def.executor.execute(
                         inputs=action.tool_call.inputs,
                         telemetry=telemetry,
@@ -119,19 +123,84 @@ class LoopEngine:
                         "Based on the above search results, continue your research or provide your Final Answer."
                     )
                 else:
+                    stall_turn_count += 1
                     # Tool not found — inject as error observation
                     working_memory.add_message("assistant", response.content or "")
                     working_memory.add_message("user", f"Observation: Tool '{action.tool_call.tool_name}' not found in registry.")
                     episodic_memory.log_observation("Tool not found.", governor.steps)
 
             elif action.type == ActionType.FINAL_ANSWER:
+                stall_turn_count = 0
                 episodic_memory.log_observation("Final answer provided.", governor.steps)
 
             else:
-                # THOUGHT_ONLY — feed back to continue the loop
-                if response.content:
-                    working_memory.add_message("assistant", response.content)
-                    working_memory.add_message("user", "Please continue and provide your Final Answer when ready.")
+                # Announcement-only / THOUGHT_ONLY turn without tool call or final answer
+                stall_turn_count += 1
+
+                if stall_turn_count == 1:
+                    # 1st stall turn — standard nudge
+                    if response.content:
+                        working_memory.add_message("assistant", response.content)
+                    working_memory.add_message(
+                        "user",
+                        "Please continue with your search action or provide your Final Answer directly."
+                    )
+
+                elif stall_turn_count == 2:
+                    # 2nd consecutive stall turn — inject targeted instruction
+                    if response.content:
+                        working_memory.add_message("assistant", response.content)
+                    working_memory.add_message(
+                        "user",
+                        "You have stated you are ready to answer multiple times without doing so. Produce the Final Answer: block now, based on the evidence already gathered."
+                    )
+
+                else:
+                    # 3rd consecutive stall turn — safety fallback: force best-effort synthesis
+                    fallback_narrative = "I've reached my search limit and will now synthesize the answer from the gathered evidence."
+                    await telemetry.emit(TelemetryEvent(
+                        event_id=str(uuid.uuid4()),
+                        timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                        track_id=track_id,
+                        parent_track_id=parent_track_id,
+                        track_type="root" if parent_track_id is None else "subagent",
+                        source_type="agent",
+                        payload=Payload(
+                            type="narrative_start",
+                            node_id=str(uuid.uuid4()),
+                            narrative=fallback_narrative
+                        )
+                    ))
+
+                    # Quick best-effort synthesis request
+                    synth_messages = working_memory.get_context() + [
+                        Message(
+                            role="user",
+                            content="Provide your Final Answer now summarizing all findings gathered so far into a clear, comprehensive answer."
+                        )
+                    ]
+                    synthesis_req = LLMRequest(
+                        messages=synth_messages,
+                        tools=[],
+                        system=system_msg,
+                        max_tokens=2048,
+                        temperature=0.0
+                    )
+                    try:
+                        synth_resp = await provider.complete(synthesis_req)
+                        synth_action = OutputParser.parse(synth_resp)
+                        best_effort_answer = synth_action.final_answer or synth_resp.content or "Synthesized answer based on gathered research."
+                    except Exception:
+                        best_effort_answer = response.content or "Synthesized answer based on gathered research."
+
+                    action = AgentAction(
+                        type=ActionType.FINAL_ANSWER,
+                        narrative=fallback_narrative,
+                        thought="Forcing final answer synthesis after stall threshold reached.",
+                        final_answer=best_effort_answer.strip(),
+                        raw_response=response.content or "",
+                    )
+                    episodic_memory.log_observation("Forced final answer after stall limit.", governor.steps)
 
             # 7. Check Stop Conditions
             for cond in stop_conditions:
