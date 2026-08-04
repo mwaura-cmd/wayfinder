@@ -29,10 +29,14 @@ FIREBASE_CREDENTIALS_PATH: str = os.environ.get(
 )
 FIREBASE_CREDENTIALS_JSON: str = os.environ.get("FIREBASE_CREDENTIALS_JSON", "")
 
-# ── LLM — OpenRouter ──────────────────────────────────────────────────────────
-# Sign up at https://openrouter.ai and grab a free API key.
-# Set OPENROUTER_API_KEY in your .env (local) or Render dashboard (prod).
-# Browse models at https://openrouter.ai/models — free ones are marked :free
+# ── LLM Provider Selection & Settings ─────────────────────────────────────────
+# LLM_PROVIDER controls which provider is active at runtime ("groq" | "openrouter").
+# Both providers' keys and models remain defined and switchable.
+LLM_PROVIDER: str = os.environ.get("LLM_PROVIDER", "groq")
+
+GROQ_API_KEY: str = os.environ.get("GROQ_API_KEY", "")
+GROQ_MODEL: str = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+
 OPENROUTER_API_KEY: str = os.environ.get("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL: str = os.environ.get(
     "OPENROUTER_MODEL",

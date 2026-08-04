@@ -21,12 +21,11 @@ from core.tools import ToolRegistry, ToolDefinition
 from core.skills import SkillRegistry
 from observability.telemetry import TelemetryHub, TelemetryEvent, Payload
 from orchestration.topologies import run_sequential_agent
-from core.firebase import get_db
-from firebase_admin import firestore
-from core.memory import FirebaseSemanticMemoryStore
 from core.auth import get_current_user
 from providers.openrouter import OpenRouterProvider
+from providers.groq import GroqProvider
 from tools.tavily import TavilySearchExecutor
+from llm_provider import get_llm_client_and_model
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 log = logging.getLogger(__name__)
@@ -47,6 +46,7 @@ app.mount("/assets", StaticFiles(directory=Path(__file__).parent / "frontend" / 
 
 # ── Register Components ────────────────────────────────────────────────────────
 ProviderRegistry.register("openrouter", OpenRouterProvider())
+ProviderRegistry.register("groq", GroqProvider())
 
 ToolRegistry.register(ToolDefinition(
     name="web_search",
@@ -197,9 +197,28 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
 
     async def bg_task():
         try:
+            # Validate provider configuration upfront (yields clean error if key missing or invalid provider)
+            get_llm_client_and_model(config.LLM_PROVIDER)
+        except Exception as e:
+            err_msg = str(e)
+            log.error(f"Task {task_id} configuration error: {err_msg}")
+            await telemetry_hub.emit(TelemetryEvent(
+                event_id=str(uuid.uuid4()),
+                timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                track_id=task_id,
+                parent_track_id=None,
+                source_type="agent",
+                payload=Payload(
+                    type="error",
+                    text=err_msg
+                )
+            ))
+            return
+
+        try:
             result = await run_sequential_agent(
                 prompt=full_prompt,
-                provider_id="openrouter",
+                provider_id=config.LLM_PROVIDER,
                 tool_categories=tool_cats,
                 skill_domain="",
                 role_prompt=(

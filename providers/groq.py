@@ -1,34 +1,32 @@
 """
-providers/openrouter.py — OpenRouter LLM provider for Wayfinder.
+providers/groq.py — Groq LLM provider for Wayfinder.
 
-Uses the official `openai` SDK pointing to OpenRouter's API endpoint.
-This is the OpenAI-compatible approach to routing between models.
+Uses standard OpenAI SDK pointing to Groq's API endpoint.
+Supports automatic fallback to OpenRouter if Groq is temporarily unavailable.
 """
 
 import uuid
 import json
-from typing import Any, AsyncIterator, List
-
 import logging
 import asyncio
-from openai import AsyncOpenAI
-import openai
+from typing import Any, AsyncIterator, List
 
-logger = logging.getLogger(__name__)
+import openai
 
 from core.provider import BaseLLMProvider, LLMRequest, LLMResponse, LLMChunk, Message, TokenUsage, ToolCall
 import config
 from llm_provider import get_async_llm_client_and_model
 
-class OpenRouterProvider(BaseLLMProvider):
+logger = logging.getLogger(__name__)
+
+
+class GroqProvider(BaseLLMProvider):
     """
-    LLM provider backed by OpenRouter via the OpenAI SDK.
+    LLM provider backed by Groq via the OpenAI SDK.
     """
 
     def __init__(self, model_name: str | None = None):
-        self.model_name = model_name or config.OPENROUTER_MODEL
-
-    # ── Abstract property implementations ─────────────────────────────────────
+        self.model_name = model_name or config.GROQ_MODEL
 
     @property
     def context_limit(self) -> int:
@@ -36,14 +34,9 @@ class OpenRouterProvider(BaseLLMProvider):
 
     @property
     def provider_id(self) -> str:
-        return "openrouter"
-
-    # ── Tool formatting ────────────────────────────────────────────────────────
+        return "groq"
 
     def format_tools(self, tools: List[Any]) -> List[dict]:
-        """
-        Convert ToolDefinition list → OpenAI function-calling format.
-        """
         if not tools:
             return []
         return [
@@ -58,20 +51,13 @@ class OpenRouterProvider(BaseLLMProvider):
             for t in tools
         ]
 
-    # ── Message conversion ─────────────────────────────────────────────────────
-
     def _convert_messages(self, messages: List[Message]) -> List[dict]:
-        """
-        Convert normalised Message objects → OpenAI chat message dicts.
-        """
         result = []
         for m in messages:
             role = m.role
-            # Map roles to strictly allowed OpenAI roles
             if role == "model":
                 role = "assistant"
             elif role == "observation":
-                # Tools need specific formatting in OpenAI (role="tool", tool_call_id=...)
                 if m.tool_call_id:
                     result.append({
                         "role": "tool",
@@ -82,7 +68,6 @@ class OpenRouterProvider(BaseLLMProvider):
                 else:
                     role = "user"
                     m.content = f"Tool result: {m.content}"
-                    
             elif role == "tool":
                 role = "user"
                 m.content = f"Tool usage logged: {m.content}"
@@ -90,14 +75,10 @@ class OpenRouterProvider(BaseLLMProvider):
             result.append({"role": role, "content": m.content})
         return result
 
-    # ── Non-streaming completion ───────────────────────────────────────────────
-
     async def complete(self, request: LLMRequest) -> LLMResponse:
-        client, model_name = get_async_llm_client_and_model("openrouter")
+        client, model_name = get_async_llm_client_and_model("groq")
 
         messages = self._convert_messages(request.messages)
-        
-        # Inject the system prompt if present
         if request.system:
             messages.insert(0, {"role": "system", "content": request.system})
 
@@ -122,29 +103,27 @@ class OpenRouterProvider(BaseLLMProvider):
         for attempt in range(max_retries):
             try:
                 response = await client.chat.completions.create(**kwargs)
-                if hasattr(response, "model") and response.model:
-                    logger.info(f"OpenRouter routed request to underlying model: {response.model}")
                 break
             except Exception as e:
                 last_error = e
-                logger.warning(f"OpenRouter request attempt {attempt + 1}/{max_retries} failed: {e}")
+                logger.warning(f"Groq request attempt {attempt + 1}/{max_retries} failed: {e}")
                 if attempt < max_retries - 1:
                     await asyncio.sleep(base_delay * (2 ** attempt))
                     continue
 
-        # Optional Automatic Fallback to Groq if OpenRouter retries exhausted
-        if response is None and config.GROQ_API_KEY and config.GROQ_API_KEY.strip():
-            logger.warning("OpenRouter unavailable, falling back to Groq for this request")
+        # Optional Automatic Fallback to OpenRouter if Groq retries exhausted
+        if response is None and config.OPENROUTER_API_KEY and config.OPENROUTER_API_KEY.strip():
+            logger.warning("Groq unavailable, falling back to OpenRouter for this request")
             try:
-                fb_client, fb_model = get_async_llm_client_and_model("groq")
+                fb_client, fb_model = get_async_llm_client_and_model("openrouter")
                 kwargs["model"] = fb_model
                 response = await fb_client.chat.completions.create(**kwargs)
             except Exception as fb_err:
-                logger.error(f"Fallback to Groq also failed: {fb_err}")
+                logger.error(f"Fallback to OpenRouter also failed: {fb_err}")
                 raise last_error or fb_err
 
         if response is None:
-            raise RuntimeError("OpenRouter's free-tier models are temporarily unavailable — please try again in a few minutes") from last_error
+            raise RuntimeError(f"Groq API call failed: {last_error}") from last_error
 
         choice = response.choices[0]
         message = choice.message
@@ -152,16 +131,15 @@ class OpenRouterProvider(BaseLLMProvider):
         finish = choice.finish_reason
 
         stop_reason_map = {
-            "stop":          "end_turn",
-            "tool_calls":    "tool_use",
-            "length":        "max_tokens",
-            "content_filter":"end_turn",
+            "stop": "end_turn",
+            "tool_calls": "tool_use",
+            "length": "max_tokens",
+            "content_filter": "end_turn",
         }
         stop_reason = stop_reason_map.get(finish, "end_turn")
 
-        # Parse tool calls
         tool_calls: List[ToolCall] = []
-        if message.tool_calls:
+        if getattr(message, "tool_calls", None):
             for tc in message.tool_calls:
                 fn = tc.function
                 try:
@@ -178,8 +156,8 @@ class OpenRouterProvider(BaseLLMProvider):
             stop_reason = "tool_use"
 
         usage = TokenUsage(
-            prompt_tokens=response.usage.prompt_tokens if response.usage else 0,
-            completion_tokens=response.usage.completion_tokens if response.usage else 0,
+            prompt_tokens=response.usage.prompt_tokens if getattr(response, "usage", None) else 0,
+            completion_tokens=response.usage.completion_tokens if getattr(response, "usage", None) else 0,
         )
 
         return LLMResponse(
@@ -190,12 +168,8 @@ class OpenRouterProvider(BaseLLMProvider):
             raw=response.model_dump(),
         )
 
-    # ── Streaming (not yet wired) ──────────────────────────────────────────────
-
     async def stream(self, request: LLMRequest) -> AsyncIterator[LLMChunk]:
-        raise NotImplementedError("Streaming not yet wired.")
-
-    # ── Action parsing ─────────────────────────────────────────────────────────
+        raise NotImplementedError("Streaming not implemented.")
 
     def parse_action(self, response: LLMResponse) -> Any:
         pass
