@@ -1236,12 +1236,125 @@
     .marketing-footer {
       width: 100%;
       max-width: 1000px;
-      padding: 32px 24px;
-      text-align: center;
+      padding: 48px 24px 36px;
+      border-top: 1px solid var(--wf-border);
+      position: relative;
+      z-index: 2;
+    }
+    .marketing-footer-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 40px;
+      margin-bottom: 36px;
+      flex-wrap: wrap;
+    }
+    .marketing-footer-brand {
+      max-width: 320px;
+    }
+    .marketing-footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 16px;
+      color: var(--wf-text);
+      margin-bottom: 10px;
+    }
+    .marketing-footer-logo svg {
+      width: 18px;
+      height: 18px;
+      color: var(--wf-accent);
+    }
+    .marketing-footer-tagline {
+      font-size: 13px;
+      color: var(--wf-text-dim);
+      line-height: 1.5;
+    }
+    .marketing-footer-links-group {
+      display: flex;
+      gap: 48px;
+      flex-wrap: wrap;
+    }
+    .footer-links-col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .footer-links-heading {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--wf-text-faint);
+      margin-bottom: 4px;
+    }
+    .footer-link {
+      font-size: 13px;
+      color: var(--wf-text-dim);
+      text-decoration: none;
+      transition: color 0.15s;
+      cursor: pointer;
+    }
+    .footer-link:hover {
+      color: var(--wf-accent);
+    }
+    .system-status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--wf-text);
+    }
+    .status-pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--wf-success);
+      box-shadow: 0 0 8px var(--wf-success);
+      animation: pulse-success 2.5s infinite;
+    }
+    @keyframes pulse-success {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.85); }
+    }
+    .footer-meta-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--wf-text-faint);
+    }
+    .marketing-footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 24px;
       border-top: 1px solid var(--wf-border);
       color: var(--wf-text-faint);
       font-size: 12px;
       font-family: var(--font-mono);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .footer-copyright {
+      color: var(--wf-text-dim);
+    }
+    .footer-subtext {
+      font-size: 11.5px;
+      color: var(--wf-text-faint);
+    }
+    .workspace-preloader-footer {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid var(--wf-border);
+      width: 100%;
+      max-width: 680px;
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: var(--wf-text-faint);
     }
 
     /* ── Auth Modal ────────────────────────────────────────────── */
@@ -1606,9 +1719,54 @@
       <button class="marketing-cta-btn large" onclick="showAuthModal()">Start Researching</button>
     </div>
 
-    <div class="marketing-footer">
-      <p>Wayfinder &middot; Traceable Web Research &amp; Persistent Memory</p>
-    </div>
+    <footer class="marketing-footer">
+      <div class="marketing-footer-top">
+        <div class="marketing-footer-brand">
+          <div class="marketing-footer-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+            </svg>
+            Wayfinder
+          </div>
+          <p class="marketing-footer-tagline">
+            Traceable, verified web research with persistent episodic memory across sessions.
+          </p>
+        </div>
+
+        <div class="marketing-footer-links-group">
+          <div class="footer-links-col">
+            <div class="footer-links-heading">Product</div>
+            <a href="javascript:void(0)" class="footer-link" onclick="document.getElementById('marketing-overlay').scrollTo({top: 800, behavior: 'smooth'})">Trace Engine</a>
+            <a href="javascript:void(0)" class="footer-link" onclick="document.getElementById('marketing-overlay').scrollTo({top: 1400, behavior: 'smooth'})">Semantic Memory</a>
+            <a href="javascript:void(0)" class="footer-link" onclick="showAuthModal()">Web Workspace</a>
+          </div>
+          <div class="footer-links-col">
+            <div class="footer-links-heading">Legal &amp; Trust</div>
+            <a href="javascript:void(0)" class="footer-link" onclick="openLegalNotice('terms')">Terms of Service</a>
+            <a href="javascript:void(0)" class="footer-link" onclick="openLegalNotice('privacy')">Privacy Policy</a>
+            <a href="javascript:void(0)" class="footer-link" onclick="openLegalNotice('security')">Data &amp; Security</a>
+          </div>
+          <div class="footer-links-col">
+            <div class="footer-links-heading">System</div>
+            <div class="system-status-indicator">
+              <span class="status-pulse-dot"></span>
+              <span>All Systems Operational</span>
+            </div>
+            <span class="footer-meta-tag">v2.4.0 &middot; open-standards</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="marketing-footer-bottom">
+        <div class="footer-copyright">
+          &copy; <span id="current-year">2026</span> Wayfinder Inc. All rights reserved.
+        </div>
+        <div class="footer-subtext">
+          Built for grounded discovery and deep research. No hallucinated knowledge.
+        </div>
+      </div>
+    </footer>
   </div>
 
 
@@ -1741,6 +1899,10 @@
                 <div class="chip" onclick="fillQuestion(this)">Compare Next.js 15 and Remix for production</div>
                 <div class="chip" onclick="fillQuestion(this)">What caused the 2023 SVB bank collapse?</div>
               </div>
+            </div>
+
+            <div class="workspace-preloader-footer">
+              &copy; <span id="ws-year">2026</span> Wayfinder &middot; Traceable Web Research &amp; Memory Engine
             </div>
           </div>
 
@@ -2557,6 +2719,53 @@
         overlay.style.setProperty('--grid-parallax', (scrollTop * 0.05).toFixed(1) + 'px');
       }, { passive: true });
     })();
+
+    /* ── Legal Notice Dialog ────────────────────────────────────── */
+    var legalNotices = {
+      terms: {
+        title: 'Terms of Service',
+        subtitle: 'Wayfinder Research Platform &amp; API Usage',
+        content: '<p style="margin-bottom:12px;">Welcome to Wayfinder. By accessing or using our agentic research platform, you agree to comply with our standard terms.</p><p style="margin-bottom:12px;"><strong>Research Accuracy & Grounding:</strong> Wayfinder searches public web sources and synthesizes verified answers. Automated summaries and citation links are provided for informational verification and research acceleration.</p><p><strong>Account Conduct:</strong> Users must not conduct automated denial-of-service, scrapers against rate limits, or misuse API endpoints.</p>'
+      },
+      privacy: {
+        title: 'Privacy Policy',
+        subtitle: 'How Wayfinder protects your queries and data',
+        content: '<p style="margin-bottom:12px;">Your privacy and proprietary research are protected under strict isolation rules:</p><p style="margin-bottom:12px;"><strong>Data Confidentiality:</strong> Research queries, attached workspace documents, and episodic session memories are scoped strictly to your authenticated UID in encrypted cloud databases.</p><p><strong>No Training on User Data:</strong> Wayfinder does not use your private searches or uploaded files to train public foundational AI models.</p>'
+      },
+      security: {
+        title: 'Data &amp; Security',
+        subtitle: 'Enterprise-grade protection, TLS encryption & token auth',
+        content: '<p style="margin-bottom:12px;"><strong>End-to-End Encryption:</strong> All client-to-agent telemetry and SSE streams are encrypted using TLS 1.3 in transit and AES-256 at rest.</p><p style="margin-bottom:12px;"><strong>Verified Identity:</strong> User sessions and semantic vector memories require verified token signatures and Firebase-authenticated security rules.</p><p><strong>Auditability:</strong> Every search action, tool execution, and source attribution is logged in the timeline trace for full transparency.</p>'
+      }
+    };
+
+    function openLegalNotice(type) {
+      var item = legalNotices[type] || legalNotices.terms;
+      var titleEl = document.getElementById('legal-modal-title');
+      var subEl = document.getElementById('legal-modal-sub');
+      var bodyEl = document.getElementById('legal-modal-body');
+      if (titleEl) titleEl.innerHTML = item.title;
+      if (subEl) subEl.innerHTML = item.subtitle;
+      if (bodyEl) bodyEl.innerHTML = item.content;
+      var modal = document.getElementById('legal-modal');
+      if (modal) {
+        modal.style.display = 'flex';
+      }
+    }
+
+    function hideLegalNotice() {
+      var modal = document.getElementById('legal-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    // Auto update current year in copyright notices
+    (function updateCopyrightYears() {
+      var yr = new Date().getFullYear();
+      var el1 = document.getElementById('current-year');
+      var el2 = document.getElementById('ws-year');
+      if (el1) el1.textContent = yr;
+      if (el2) el2.textContent = yr;
+    })();
   </script>
 
   <!-- Firebase SDK -->
@@ -2865,6 +3074,19 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Legal Notice Modal -->
+  <div id="legal-modal" class="auth-modal-overlay" onclick="if(event.target===this) hideLegalNotice()">
+    <div class="auth-modal-box" style="max-width: 480px;">
+      <button class="auth-modal-close" onclick="hideLegalNotice()" title="Close">&times;</button>
+      <div style="font-family:var(--font-display); font-size:18px; font-weight:600; color:var(--wf-text); margin-bottom:4px;" id="legal-modal-title">Terms of Service</div>
+      <div style="font-size:12px; font-family:var(--font-mono); color:var(--wf-accent); margin-bottom:16px;" id="legal-modal-sub">Wayfinder Platform</div>
+      <div style="font-size:13px; color:var(--wf-text-dim); line-height:1.6; max-height:300px; overflow-y:auto; padding-right:6px;" id="legal-modal-body"></div>
+      <div style="margin-top:20px; display:flex; justify-content:flex-end;">
+        <button class="auth-btn-primary" style="flex:0 0 auto; padding:8px 20px;" onclick="hideLegalNotice()">Understood</button>
+      </div>
     </div>
   </div>
 
