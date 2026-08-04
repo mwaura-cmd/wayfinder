@@ -1436,6 +1436,220 @@
       .marketing-subtitle { font-size: 14px; }
       .marketing-hero { padding: 48px 16px 36px; }
     }
+  
+    /* ── Research Level Selector ─────────────────────────────────── */
+    .level-selector {
+      display: inline-flex;
+      background: var(--wf-surface);
+      border: 1px solid var(--wf-border);
+      border-radius: var(--radius-sm);
+      padding: 2px;
+      gap: 2px;
+      align-items: center;
+    }
+    .level-btn {
+      background: transparent;
+      border: none;
+      color: var(--wf-text-dim);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      user-select: none;
+    }
+    .level-btn:hover {
+      color: var(--wf-text);
+      background: var(--wf-surface-hi);
+    }
+    .level-btn.active {
+      background: var(--wf-accent);
+      color: #0d1321;
+      font-weight: 600;
+    }
+
+    /* ── Model Attribution & Level Badges ──────────────────────── */
+    .answer-card-meta {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .model-badge {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--wf-accent);
+      background: var(--wf-surface);
+      border: 1px solid var(--wf-border);
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      max-width: 240px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .level-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--wf-text-dim);
+      background: var(--wf-bg);
+      border: 1px solid var(--wf-border);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Feedback Controls in Answer Card ──────────────────────── */
+    .answer-card-footer {
+      display: flex;
+      flex-direction: column;
+      background: var(--wf-surface-sub);
+      border-top: 1px solid var(--wf-border);
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .feedback-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 18px;
+    }
+    .feedback-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .feedback-label {
+      color: var(--wf-text-faint);
+      font-size: 10px;
+      margin-right: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .feedback-btn {
+      background: transparent;
+      border: 1px solid var(--wf-border);
+      color: var(--wf-text-dim);
+      border-radius: var(--radius-sm);
+      padding: 4px 9px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11.5px;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .feedback-btn:hover {
+      border-color: var(--wf-accent);
+      color: var(--wf-text);
+      background: var(--wf-surface-hi);
+    }
+    .feedback-btn.active.up {
+      border-color: var(--wf-success);
+      background: rgba(107, 144, 128, 0.2);
+      color: var(--wf-success);
+      font-weight: 500;
+    }
+    .feedback-btn.active.down {
+      border-color: var(--wf-error);
+      background: rgba(226, 114, 91, 0.2);
+      color: var(--wf-error);
+      font-weight: 500;
+    }
+    .feedback-note-panel {
+      display: none;
+      padding: 8px 18px 14px;
+      border-top: 1px dashed var(--wf-border);
+      background: var(--wf-bg);
+      gap: 8px;
+      align-items: center;
+    }
+    .feedback-note-input {
+      flex: 1;
+      background: var(--wf-surface);
+      border: 1px solid var(--wf-border);
+      border-radius: var(--radius-sm);
+      padding: 6px 10px;
+      color: var(--wf-text);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      outline: none;
+    }
+    .feedback-note-input:focus {
+      border-color: var(--wf-accent);
+    }
+    .feedback-note-submit {
+      background: var(--wf-surface-hi);
+      border: 1px solid var(--wf-border);
+      color: var(--wf-text);
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      cursor: pointer;
+    }
+    .feedback-note-submit:hover {
+      border-color: var(--wf-accent);
+      color: var(--wf-accent);
+    }
+
+    /* ── Multi-turn Thread Exchanges ───────────────────────────── */
+    .thread-exchanges {
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+      width: 100%;
+    }
+    .thread-exchange {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--wf-border);
+    }
+    .thread-exchange:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .exchange-q-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--wf-border);
+    }
+    .exchange-q-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: var(--radius-sm);
+      background: var(--wf-surface);
+      border: 1px solid var(--wf-border);
+      color: var(--wf-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .exchange-q-text {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--wf-text);
+      line-height: 1.4;
+    }
+
   </style>
 </head>
 <body>
@@ -1851,6 +2065,10 @@
             </svg>
           </button>
           <input id="question-input" type="text" placeholder="Ask a follow-up or new question&hellip;" autocomplete="off" spellcheck="true" />
+          <div class="level-selector" id="topbar-level-selector">
+            <button type="button" class="level-btn active" data-level="standard" onclick="setResearchLevel('standard')">Standard</button>
+            <button type="button" class="level-btn" data-level="extended" onclick="setResearchLevel('extended')">Extended</button>
+          </div>
           <button id="submit-btn">Research</button>
         </div>
         <div id="topbar-attached-files" class="attached-files-container" style="padding: 0 20px; display: none;"></div>
@@ -1888,6 +2106,10 @@
                 <input id="hero-question-input" type="text" placeholder="What do you want to research?" autocomplete="off" spellcheck="true" />
                 <button id="hero-submit-btn">Start Research</button>
               </div>
+              <div class="level-selector" id="hero-level-selector" style="margin-top: 12px;">
+                <button type="button" class="level-btn active" data-level="standard" onclick="setResearchLevel('standard')">Standard (Fast)</button>
+                <button type="button" class="level-btn" data-level="extended" onclick="setResearchLevel('extended')">Extended (Deep)</button>
+              </div>
               <div id="hero-attached-files" class="attached-files-container"></div>
             </div>
 
@@ -1908,16 +2130,19 @@
 
           <!-- Research Active View -->
           <div class="research-view" id="research-area">
-            <div class="research-context" id="research-context">
-              <div class="research-context-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
+            <div id="thread-exchanges" class="thread-exchanges"></div>
+            <div id="active-exchange-container" class="thread-exchange" style="display: none;">
+              <div class="exchange-q-header">
+                <div class="exchange-q-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                </div>
+                <div class="exchange-q-text" id="research-question-display"></div>
               </div>
-              <div class="research-context-q" id="research-question-display"></div>
+              <div id="timeline"></div>
+              <div id="answer-section"></div>
             </div>
-            <div id="timeline"></div>
-            <div id="answer-section"></div>
           </div>
 
         </div>
@@ -1941,36 +2166,63 @@
 
   <!-- Main Interaction Script -->
   <script>
-    var currentEventSource = null;
-    var activeNodeEl       = null;
-    var activeWorkPanel    = null;
-    var nodeCount          = 0;
-    var workCount          = 0;
-    var allEvents          = [];
-    var timelineVisible    = true;
+    var currentEventSource    = null;
+    var activeNodeEl          = null;
+    var activeWorkPanel       = null;
+    var nodeCount             = 0;
+    var workCount             = 0;
+    var allEvents             = [];
+    var timelineVisible       = true;
+    var currentResearchLevel  = 'standard';
+    var currentThreadId       = null;
+    var activeExchangeQ       = '';
 
-    var qInput             = document.getElementById('question-input');
-    var submitBtn          = document.getElementById('submit-btn');
-    var heroQInput         = document.getElementById('hero-question-input');
-    var heroSubmitBtn      = document.getElementById('hero-submit-btn');
-    var heroPreloader      = document.getElementById('hero-preloader');
-    var researchArea       = document.getElementById('research-area');
-    var topbar             = document.getElementById('topbar');
-    var contentArea        = document.getElementById('content-area');
-    var timeline           = document.getElementById('timeline');
-    var answerSec          = document.getElementById('answer-section');
-    var statusDiamond      = document.getElementById('status-diamond');
-    var statusText         = document.getElementById('status-text');
-    var statusSearches     = document.getElementById('status-searches');
-    var statusSearchCount  = document.getElementById('status-search-count');
-    var scrollBtn          = document.getElementById('scroll-btn');
-    var researchQDisplay   = document.getElementById('research-question-display');
+    var qInput                = document.getElementById('question-input');
+    var submitBtn             = document.getElementById('submit-btn');
+    var heroQInput            = document.getElementById('hero-question-input');
+    var heroSubmitBtn         = document.getElementById('hero-submit-btn');
+    var heroPreloader         = document.getElementById('hero-preloader');
+    var researchArea          = document.getElementById('research-area');
+    var topbar                = document.getElementById('topbar');
+    var contentArea           = document.getElementById('content-area');
+    var threadExchanges       = document.getElementById('thread-exchanges');
+    var activeExchangeCont    = document.getElementById('active-exchange-container');
+    var timeline              = document.getElementById('timeline');
+    var answerSec             = document.getElementById('answer-section');
+    var statusDiamond         = document.getElementById('status-diamond');
+    var statusText            = document.getElementById('status-text');
+    var statusSearches        = document.getElementById('status-searches');
+    var statusSearchCount     = document.getElementById('status-search-count');
+    var scrollBtn             = document.getElementById('scroll-btn');
+    var researchQDisplay      = document.getElementById('research-question-display');
+
+    function setResearchLevel(level) {
+      currentResearchLevel = level === 'extended' ? 'extended' : 'standard';
+      var allBtns = document.querySelectorAll('.level-btn');
+      allBtns.forEach(function(btn) {
+        if (btn.getAttribute('data-level') === currentResearchLevel) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
 
     function goHome() {
       if (currentEventSource) { currentEventSource.close(); currentEventSource = null; }
+      currentThreadId = null;
+      activeExchangeQ = '';
       heroPreloader.style.display = 'flex';
       researchArea.style.display  = 'none';
       topbar.classList.remove('visible');
+      if (threadExchanges) threadExchanges.innerHTML = '';
+      if (activeExchangeCont) activeExchangeCont.style.display = 'none';
+      timeline.innerHTML  = '';
+      answerSec.innerHTML = '';
+      
+      var allItems = document.querySelectorAll('.history-item');
+      allItems.forEach(function(item) { item.classList.remove('active', 'current'); });
+
       setStatus('idle', 'Ready');
       heroQInput.focus();
     }
@@ -2014,13 +2266,15 @@
     });
     submitBtn.addEventListener('click', function() { startResearch(false); });
 
-    function resetUI(question) {
+    function resetActiveExchange(question) {
+      activeExchangeQ = question;
       timeline.innerHTML  = '';
       answerSec.innerHTML = '';
       heroPreloader.style.display = 'none';
       researchArea.style.display  = 'flex';
       topbar.classList.add('visible');
       if (question) researchQDisplay.textContent = question;
+      if (activeExchangeCont) activeExchangeCont.style.display = 'flex';
       activeNodeEl    = null;
       activeWorkPanel = null;
       nodeCount       = 0;
@@ -2028,6 +2282,10 @@
       allEvents       = [];
       timelineVisible = true;
       statusSearches.style.display = 'none';
+      
+      setTimeout(function() {
+        if (activeExchangeCont) activeExchangeCont.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 50);
     }
 
     /* ── Timeline Node Creation (Diamond markers) ──────────────── */
@@ -2036,7 +2294,8 @@
       var nodeId = 'node-' + nodeCount;
 
       if (activeNodeEl) {
-        activeNodeEl.querySelector('.node-dot').className = 'node-dot done';
+        var prevDot = activeNodeEl.querySelector('.node-dot');
+        if (prevDot) prevDot.className = 'node-dot done';
         activeNodeEl.classList.remove('active');
         var prevCursor = activeNodeEl.querySelector('.typing-cursor');
         if (prevCursor) prevCursor.remove();
@@ -2052,7 +2311,7 @@
           '<div class="node-line"></div>' +
         '</div>' +
         '<div class="node-body">' +
-          '<div class="narrative-header" onclick="toggleNode(\'' + nodeId + '\')">' +
+          '<div class="narrative-header" onclick="toggleNode('' + nodeId + '')">' +
             '<div class="narrative-text">' + escapeHtml(text) + '</div>' +
             '<div class="narrative-toggle" style="display: none;">&#x25BE;</div>' +
           '</div>' +
@@ -2065,7 +2324,7 @@
     }
 
     function ensureActiveNode() {
-      if (!activeNodeEl) createNarrativeNode('Initialising research\u2026');
+      if (!activeNodeEl) createNarrativeNode('Initialising research…');
     }
 
     function addWorkItem(text) {
@@ -2087,8 +2346,6 @@
 
       var item = document.createElement('div');
       item.className = 'work-item';
-
-      // Clean prefix marker for evidence lines (Layer 2 instrument readout)
       item.innerHTML = '<span class="work-item-marker">&#x203A;</span><span>' + escapeHtml(text) + '</span>';
 
       var lastItem = activeWorkPanel.lastElementChild;
@@ -2109,30 +2366,29 @@
       }
     }
 
-    function renderAnswer(text, meta) {
-      if (activeNodeEl) {
-        activeNodeEl.querySelector('.node-dot').className = 'node-dot done';
-        activeNodeEl.classList.remove('active');
-        var cursor = activeNodeEl.querySelector('.typing-cursor');
-        if (cursor) cursor.remove();
-      }
-
+    function buildAnswerCardHTML(text, meta, messageId, level, modelUsed, initialFeedback, initialFeedbackNote) {
       var sources     = meta.sources || [];
       var elapsed     = meta.elapsed_seconds || 0;
       var searchCount = meta.search_count || 0;
       var hitCap      = meta.hit_cap || false;
+      var model       = modelUsed || meta.model_used || 'openrouter';
+      var lvl         = level || meta.level || 'standard';
+      var msgId       = messageId || meta.message_id || ('msg_' + Math.random().toString(36).slice(2));
 
       var summaryMsg = '';
       if (hitCap) {
-        summaryMsg = 'searched ' + searchCount + '\u00D7 within limit \u2014 partial answer';
+        summaryMsg = 'searched ' + searchCount + '× within limit — partial answer';
       } else if (sources.length === 0) {
         summaryMsg = 'answered in ' + elapsed + 's from prior knowledge';
       } else {
         summaryMsg = 'reviewed ' + sources.length + ' source' + (sources.length !== 1 ? 's' : '') + ' in ' + elapsed + 's';
       }
 
-      answerSec.innerHTML =
-        '<div class="completion-bar" onclick="toggleTimeline()" id="completion-summary">' +
+      var isUp   = initialFeedback === 'up';
+      var isDown = initialFeedback === 'down';
+
+      var html =
+        '<div class="completion-bar" onclick="toggleExchangeTimeline(this)" id="completion-summary-' + msgId + '">' +
           '<span class="completion-bar-icon' + (hitCap ? ' warn' : '') + '">' +
             '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
               (hitCap ? '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>' : '<polyline points="20 6 9 17 4 12"/>') +
@@ -2144,31 +2400,116 @@
             '<span class="stat-tag">' + elapsed + 's</span>' +
           '</div>' +
         '</div>' +
-        '<div class="completion-hint">&#x25BE; click to ' + (timelineVisible ? 'hide' : 'show') + ' research trail</div>' +
-        '<div class="answer-card">' +
+        '<div class="completion-hint">&#x25BE; click to toggle research trail</div>' +
+        '<div class="answer-card" id="answer-card-' + msgId + '">' +
           '<div class="answer-card-header">' +
             '<span class="answer-card-header-icon">' +
               '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
             '</span>' +
             '<span class="answer-card-header-label">Answer</span>' +
+            '<div class="answer-card-meta">' +
+              '<span class="level-badge">' + escapeHtml(lvl) + '</span>' +
+              '<span class="model-badge" title="Model: ' + escapeHtml(model) + '">' +
+                '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18"/></svg>' +
+                escapeHtml(model) +
+              '</span>' +
+            '</div>' +
           '</div>' +
-          '<div class="answer-body" id="answer-body">' + formatAnswer(text) + '</div>' +
+          '<div class="answer-body">' + formatAnswer(text) + '</div>' +
           (sources.length > 0 ? renderSources(sources) : '') +
+          '<div class="answer-card-footer">' +
+            '<div class="feedback-row">' +
+              '<div class="feedback-group">' +
+                '<span class="feedback-label">Feedback</span>' +
+                '<button type="button" class="feedback-btn' + (isUp ? ' active up' : '') + '" onclick="sendFeedback(' + JSON.stringify(msgId) + ', 'up', this)">' +
+                  '<span>&#x1F44D;</span> Useful' +
+                '</button>' +
+                '<button type="button" class="feedback-btn' + (isDown ? ' active down' : '') + '" onclick="sendFeedback(' + JSON.stringify(msgId) + ', 'down', this)">' +
+                  '<span>&#x1F44E;</span> Inaccurate' +
+                '</button>' +
+              '</div>' +
+              '<div class="feedback-status-msg" id="feedback-msg-' + msgId + '" style="color:var(--wf-text-faint); font-size:10.5px;">' +
+                (isUp ? 'Marked helpful' : isDown ? (initialFeedbackNote ? 'Note saved: ' + escapeHtml(initialFeedbackNote) : 'Marked inaccurate') : '') +
+              '</div>' +
+            '</div>' +
+            '<div class="feedback-note-panel" id="feedback-note-panel-' + msgId + '" style="' + (isDown && !initialFeedbackNote ? 'display:flex;' : 'display:none;') + '">' +
+              '<input type="text" class="feedback-note-input" id="feedback-note-input-' + msgId + '" placeholder="Optional: What was incorrect or missing?" value="' + escapeHtml(initialFeedbackNote || '') + '" />' +
+              '<button type="button" class="feedback-note-submit" onclick="submitFeedbackNote(' + JSON.stringify(msgId) + ')">Save note</button>' +
+            '</div>' +
+          '</div>' +
         '</div>';
 
-      statusSearches.style.display = '';
-      statusSearchCount.textContent = searchCount + ' searches \u00B7 ' + elapsed + 's';
-
-      setTimeout(function() {
-        answerSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 200);
+      return html;
     }
 
-    function toggleTimeline() {
-      timelineVisible = !timelineVisible;
-      timeline.style.display = timelineVisible ? 'flex' : 'none';
-      var hint = document.querySelector('.completion-hint');
-      if (hint) hint.textContent = '\u25BE click to ' + (timelineVisible ? 'hide' : 'show') + ' research trail';
+    function toggleExchangeTimeline(compBarEl) {
+      var exchange = compBarEl.closest('.thread-exchange');
+      if (!exchange) return;
+      var tl = exchange.querySelector('.exchange-timeline') || exchange.querySelector('#timeline');
+      if (tl) {
+        tl.style.display = tl.style.display === 'none' ? 'flex' : 'none';
+      }
+    }
+
+    function commitActiveExchange(text, meta, messageId) {
+      if (activeNodeEl) {
+        var dot = activeNodeEl.querySelector('.node-dot');
+        if (dot) dot.className = 'node-dot done';
+        activeNodeEl.classList.remove('active');
+        var cursor = activeNodeEl.querySelector('.typing-cursor');
+        if (cursor) cursor.remove();
+      }
+
+      // Build exchange container DOM
+      var exchangeDiv = document.createElement('div');
+      exchangeDiv.className = 'thread-exchange';
+      exchangeDiv.id = 'exchange-' + messageId;
+
+      var qHeader =
+        '<div class="exchange-q-header">' +
+          '<div class="exchange-q-icon">' +
+            '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+              '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>' +
+            '</svg>' +
+          '</div>' +
+          '<div class="exchange-q-text">' + escapeHtml(activeExchangeQ) + '</div>' +
+        '</div>';
+
+      // Clone current timeline contents
+      var clonedTimeline = document.createElement('div');
+      clonedTimeline.className = 'exchange-timeline';
+      clonedTimeline.innerHTML = timeline.innerHTML;
+
+      // Ensure all diamond markers in cloned timeline are marked done
+      clonedTimeline.querySelectorAll('.narrative-node').forEach(function(node) {
+        node.classList.remove('active');
+        var d = node.querySelector('.node-dot');
+        if (d && !d.classList.contains('error')) d.className = 'node-dot done';
+        var c = node.querySelector('.typing-cursor');
+        if (c) c.remove();
+      });
+
+      var answerCardHTML = buildAnswerCardHTML(
+        text, meta, messageId, meta.level || currentResearchLevel, meta.model_used || 'openrouter'
+      );
+
+      exchangeDiv.innerHTML = qHeader;
+      exchangeDiv.appendChild(clonedTimeline);
+      
+      var answerSecDiv = document.createElement('div');
+      answerSecDiv.innerHTML = answerCardHTML;
+      exchangeDiv.appendChild(answerSecDiv);
+
+      threadExchanges.appendChild(exchangeDiv);
+
+      // Clean up active exchange container
+      timeline.innerHTML = '';
+      answerSec.innerHTML = '';
+      if (activeExchangeCont) activeExchangeCont.style.display = 'none';
+
+      setTimeout(function() {
+        exchangeDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
     }
 
     function formatAnswer(text) {
@@ -2203,7 +2544,7 @@
     function renderError(text) {
       if (activeNodeEl) {
         var dot = activeNodeEl.querySelector('.node-dot');
-        dot.className = 'node-dot error';
+        if (dot) dot.className = 'node-dot error';
         activeNodeEl.classList.remove('active');
       }
       answerSec.innerHTML =
@@ -2215,6 +2556,59 @@
           '</span>' +
           '<div class="error-text">' + escapeHtml(text) + '</div>' +
         '</div>';
+    }
+
+    /* ── Feedback Submission ───────────────────────────────────── */
+    async function sendFeedback(messageId, feedbackType, btnEl) {
+      var row = btnEl.closest('.feedback-row');
+      var btns = row.querySelectorAll('.feedback-btn');
+      btns.forEach(function(b) { b.classList.remove('active', 'up', 'down'); });
+
+      btnEl.classList.add('active', feedbackType);
+
+      var notePanel = document.getElementById('feedback-note-panel-' + messageId);
+      var msgEl     = document.getElementById('feedback-msg-' + messageId);
+
+      if (feedbackType === 'down' && notePanel) {
+        notePanel.style.display = 'flex';
+      } else if (notePanel) {
+        notePanel.style.display = 'none';
+      }
+
+      if (msgEl) {
+        msgEl.textContent = feedbackType === 'up' ? 'Marked helpful' : 'Marked inaccurate';
+      }
+
+      try {
+        await fetch('/messages/' + encodeURIComponent(messageId) + '/feedback', {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+          body: JSON.stringify({ feedback: feedbackType })
+        });
+      } catch(e) {
+        console.warn('Feedback submission failed:', e);
+      }
+    }
+
+    async function submitFeedbackNote(messageId) {
+      var inputEl = document.getElementById('feedback-note-input-' + messageId);
+      var msgEl   = document.getElementById('feedback-msg-' + messageId);
+      var note    = inputEl ? inputEl.value.trim() : '';
+
+      try {
+        var res = await fetch('/messages/' + encodeURIComponent(messageId) + '/feedback', {
+          method: 'POST',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+          body: JSON.stringify({ feedback: 'down', feedback_note: note })
+        });
+        if (res.ok) {
+          if (msgEl) msgEl.textContent = 'Feedback saved' + (note ? ': ' + note : '');
+          var notePanel = document.getElementById('feedback-note-panel-' + messageId);
+          if (notePanel) notePanel.style.display = 'none';
+        }
+      } catch(e) {
+        console.warn('Feedback note failed:', e);
+      }
     }
 
     window.currentIdToken = '';
@@ -2355,7 +2749,7 @@
       recognition.onstart = function() {
         isListening = true;
         voiceBtns.forEach(btn => btn.classList.add('recording'));
-        setStatus('working', 'Listening\u2026 speak now');
+        setStatus('working', 'Listening… speak now');
       };
 
       recognition.onresult = function(event) {
@@ -2418,9 +2812,9 @@
       heroQInput.disabled    = true;
       heroSubmitBtn.disabled = true;
 
-      qInput.value = question;
-      setStatus('working', 'Researching\u2026');
-      resetUI(question || (attachedFiles.length ? "Document Analysis: " + attachedFiles.map(f => f.name).join(", ") : ""));
+      qInput.value = '';
+      setStatus('working', 'Researching (' + currentResearchLevel + ')…');
+      resetActiveExchange(question || (attachedFiles.length ? "Document Analysis: " + attachedFiles.map(f => f.name).join(", ") : ""));
 
       try {
         var res = await fetch('/research', {
@@ -2428,6 +2822,8 @@
           headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
           body: JSON.stringify({
             question: question,
+            thread_id: currentThreadId,
+            level: currentResearchLevel,
             attachments: attachedFiles.map(f => ({ name: f.name, type: f.type, data: f.data }))
           }),
         });
@@ -2444,6 +2840,7 @@
 
         var data = await res.json();
         var task_id = data.task_id;
+        if (data.thread_id) currentThreadId = data.thread_id;
 
         attachedFiles = [];
         renderAttachedFiles();
@@ -2463,7 +2860,7 @@
           switch (payload.type) {
             case 'narrative_start':
               createNarrativeNode(payload.narrative || '');
-              setStatus('working', 'Thinking\u2026');
+              setStatus('working', 'Thinking…');
               break;
 
             case 'work_delta':
@@ -2473,6 +2870,10 @@
 
             case 'run_complete':
               var searchCount2 = 0, elapsed2 = 0, sources2 = [];
+              var modelUsed2 = payload.model_used || 'openrouter';
+              var levelUsed2 = payload.level || currentResearchLevel;
+              var msgId2 = payload.message_id || ('msg_' + Date.now());
+
               if (payload.label) {
                 var parts = {};
                 payload.label.split('|').forEach(function(kv) {
@@ -2483,10 +2884,23 @@
                 elapsed2     = parseFloat(parts.elapsed || '0') || 0;
                 var rawSrc   = parts.sources || '';
                 sources2     = rawSrc ? rawSrc.split(',').filter(Boolean) : [];
+                if (parts.model_used) modelUsed2 = parts.model_used;
+                if (parts.level) levelUsed2 = parts.level;
+                if (parts.thread_id) currentThreadId = parts.thread_id;
               }
+
+              var metaInfo = {
+                search_count: searchCount2,
+                elapsed_seconds: elapsed2,
+                sources: sources2,
+                model_used: modelUsed2,
+                level: levelUsed2,
+                message_id: msgId2
+              };
+
               if (payload.final_output) {
-                renderAnswer(payload.final_output, { search_count: searchCount2, elapsed_seconds: elapsed2, sources: sources2 });
-                setStatus('idle', 'Done \u2014 ' + searchCount2 + ' searches \u00B7 ' + elapsed2 + 's');
+                commitActiveExchange(payload.final_output, metaInfo, msgId2);
+                setStatus('idle', 'Done — ' + searchCount2 + ' searches · ' + elapsed2 + 's');
               } else {
                 var summary = payload.summary || '';
                 if (summary.includes('error') || summary.includes('aborted')) {
@@ -2498,7 +2912,7 @@
               submitBtn.disabled = false; qInput.disabled = false;
               heroQInput.disabled = false; heroSubmitBtn.disabled = false;
               evtSource.close(); currentEventSource = null;
-              loadHistory(); qInput.value = ''; qInput.focus();
+              loadHistory(); qInput.focus();
               break;
 
             case 'error_event':
@@ -2528,124 +2942,181 @@
       }
     }
 
-    var loadedSessionsMap = {};
+    var loadedThreadsMap = {};
 
     async function loadHistory() {
       try {
         var res = await fetch('/history?limit=30', { headers: authHeaders() });
         if (!res.ok) return;
         var data = await res.json();
-        var sessions = data.sessions || [];
+        var threads = data.sessions || data.threads || [];
         var list = document.getElementById('history-list');
-        if (!sessions || !sessions.length) {
-          list.innerHTML = '<div class="history-empty"><div class="history-empty-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg></div>No sessions yet.<br>Start a search to begin.</div>';
+        if (!threads || !threads.length) {
+          list.innerHTML = '<div class="history-empty"><div class="history-empty-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg></div>No research threads yet.<br>Start a search to begin.</div>';
           return;
         }
-        loadedSessionsMap = {};
-        list.innerHTML = sessions.map(function(s) {
-          var taskId = s.task_id || ('sess_' + Math.random().toString(36).slice(2));
-          s.task_id = taskId;
-          loadedSessionsMap[taskId] = s;
-          var q = (s.question || '').length > 55 ? (s.question || '').slice(0, 55) + '\u2026' : (s.question || 'Untitled research');
-          var dateStr = s.created_at ? (s.created_at.slice(0, 10)) : '';
-          return '<div class="history-item" id="hist-' + escapeHtml(taskId) + '" onclick="displayHistoricalSession(' + JSON.stringify(taskId) + ')" title="' + escapeHtml(s.question || '') + '">' +
+        loadedThreadsMap = {};
+        list.innerHTML = threads.map(function(t) {
+          var threadId = t.id || t.task_id || ('th_' + Math.random().toString(36).slice(2));
+          t.id = threadId;
+          loadedThreadsMap[threadId] = t;
+          var title = (t.title || t.question || '').length > 55 ? (t.title || t.question || '').slice(0, 55) + '…' : (t.title || t.question || 'Untitled thread');
+          var dateStr = t.created_at ? (t.created_at.slice(0, 10)) : '';
+          var msgCount = t.message_count || (t.messages ? t.messages.length : 1);
+          var isActive = currentThreadId && String(currentThreadId) === String(threadId);
+
+          return '<div class="history-item' + (isActive ? ' active current' : '') + '" id="hist-' + escapeHtml(threadId) + '" onclick="displayHistoricalThread(' + JSON.stringify(threadId) + ')" title="' + escapeHtml(t.title || t.question || '') + '">' +
             '<div class="history-item-icon"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>' +
             '<div class="history-item-body">' +
-              '<div class="history-item-text">' + escapeHtml(q) + '</div>' +
-              (dateStr ? '<div class="history-date">' + escapeHtml(dateStr) + '</div>' : '') +
+              '<div class="history-item-text">' + escapeHtml(title) + '</div>' +
+              '<div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">' +
+                (dateStr ? '<div class="history-date">' + escapeHtml(dateStr) + '</div>' : '<div></div>') +
+                '<span style="font-size:9.5px; font-family:var(--font-mono); color:var(--wf-accent); background:var(--wf-surface-sub); padding:1px 5px; border-radius:2px;">' + msgCount + (msgCount === 1 ? ' turn' : ' turns') + '</span>' +
+              '</div>' +
             '</div>' +
             '</div>';
         }).join('');
       } catch(e) { /* ignore */ }
     }
 
-    async function displayHistoricalSession(taskId) {
-      var session = loadedSessionsMap[taskId];
-      if (!session) {
-        try {
-          var res = await fetch('/session/' + encodeURIComponent(taskId), { headers: authHeaders() });
-          if (res.ok) {
-            var d = await res.json();
-            if (d.session) {
-              session = d.session;
-              loadedSessionsMap[taskId] = session;
-            }
-          }
-        } catch(e) {}
-      }
-      if (!session) return;
-
+    async function displayHistoricalThread(threadId) {
       if (currentEventSource) {
         currentEventSource.close();
         currentEventSource = null;
       }
 
+      var thread = loadedThreadsMap[threadId];
+      try {
+        var res = await fetch('/thread/' + encodeURIComponent(threadId), { headers: authHeaders() });
+        if (res.ok) {
+          var d = await res.json();
+          if (d.thread) {
+            thread = d.thread;
+            loadedThreadsMap[threadId] = thread;
+          }
+        }
+      } catch(e) {}
+
+      if (!thread) return;
+
+      currentThreadId = thread.id || threadId;
+
       // Highlight selected session in sidebar
       var allItems = document.querySelectorAll('.history-item');
       allItems.forEach(function(item) { item.classList.remove('active', 'current'); });
-      var curItem = document.getElementById('hist-' + taskId);
+      var curItem = document.getElementById('hist-' + threadId);
       if (curItem) curItem.classList.add('active', 'current');
 
-      // Switch to workspace view and reset UI with session question
-      resetUI(session.question || '');
-      qInput.value = session.question || '';
-      heroQInput.value = session.question || '';
+      // Switch to workspace view
+      heroPreloader.style.display = 'none';
+      researchArea.style.display  = 'flex';
+      topbar.classList.add('visible');
+      if (activeExchangeCont) activeExchangeCont.style.display = 'none';
+      timeline.innerHTML  = '';
+      answerSec.innerHTML = '';
+      threadExchanges.innerHTML = '';
 
-      // Reconstruct timeline nodes from persisted events
-      var events = session.events || [];
-      if (Array.isArray(events) && events.length > 0) {
-        events.forEach(function(ev) {
-          var payload = ev.payload || {};
-          if (payload.type === 'narrative_start') {
-            createNarrativeNode(payload.narrative || '');
-          } else if (payload.type === 'work_delta') {
-            var workText = payload.detail || payload.narrative || payload.label || '';
-            if (workText) addWorkItem(workText);
-          }
-        });
-      } else {
-        // Fallback summary node for older session entries
-        var searchCount = session.search_count || 1;
-        createNarrativeNode('Archived investigation \u2014 ' + searchCount + ' search step' + (searchCount !== 1 ? 's' : ''));
-        if (session.sources && session.sources.length) {
-          addWorkItem('Retrieved ' + session.sources.length + ' verified sources');
-        }
+      var messages = thread.messages || [];
+      if (!messages.length && (thread.question || thread.title)) {
+        // Fallback for single session format
+        messages = [{
+          id: thread.id || 1,
+          question: thread.question || thread.title || '',
+          final_answer: thread.final_answer || '',
+          sources: thread.sources || [],
+          search_count: thread.search_count || 1,
+          elapsed_seconds: thread.elapsed_seconds || 0,
+          model_used: thread.model_used || 'openrouter',
+          level: thread.level || 'standard',
+          feedback: thread.feedback || null,
+          feedback_note: thread.feedback_note || null,
+          events: thread.events || []
+        }];
       }
 
-      // Ensure all reconstructed nodes are marked completed
-      var nodes = timeline.querySelectorAll('.narrative-node');
-      nodes.forEach(function(node) {
-        node.classList.remove('active');
-        var dot = node.querySelector('.node-dot');
-        if (dot) dot.className = 'node-dot done';
-        var cursor = node.querySelector('.typing-cursor');
-        if (cursor) cursor.remove();
+      messages.forEach(function(msg) {
+        var msgExchangeDiv = document.createElement('div');
+        msgExchangeDiv.className = 'thread-exchange';
+        msgExchangeDiv.id = 'exchange-' + msg.id;
+
+        var qHeader =
+          '<div class="exchange-q-header">' +
+            '<div class="exchange-q-icon">' +
+              '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>' +
+              '</svg>' +
+            '</div>' +
+            '<div class="exchange-q-text">' + escapeHtml(msg.question || 'Research exchange') + '</div>' +
+          '</div>';
+
+        var histTimelineDiv = document.createElement('div');
+        histTimelineDiv.className = 'exchange-timeline';
+
+        var events = msg.events || [];
+        if (Array.isArray(events) && events.length > 0) {
+          events.forEach(function(ev) {
+            var payload = ev.payload || {};
+            if (payload.type === 'narrative_start') {
+              var nodeEl = document.createElement('div');
+              nodeEl.className = 'narrative-node';
+              nodeEl.innerHTML =
+                '<div class="node-rail"><div class="node-dot done"></div><div class="node-line"></div></div>' +
+                '<div class="node-body"><div class="narrative-header"><div class="narrative-text">' + escapeHtml(payload.narrative || '') + '</div></div></div>';
+              histTimelineDiv.appendChild(nodeEl);
+            }
+          });
+        } else {
+          var searchCount = msg.search_count || 1;
+          var summaryNode = document.createElement('div');
+          summaryNode.className = 'narrative-node';
+          summaryNode.innerHTML =
+            '<div class="node-rail"><div class="node-dot done"></div><div class="node-line"></div></div>' +
+            '<div class="node-body"><div class="narrative-header"><div class="narrative-text">Completed research — ' + searchCount + ' search step' + (searchCount !== 1 ? 's' : '') + '</div></div></div>';
+          histTimelineDiv.appendChild(summaryNode);
+        }
+
+        var meta = {
+          sources: msg.sources || [],
+          search_count: msg.search_count || 0,
+          elapsed_seconds: msg.elapsed_seconds || 0,
+          model_used: msg.model_used || 'openrouter',
+          level: msg.level || 'standard',
+          message_id: msg.id
+        };
+
+        var answerCardHTML = buildAnswerCardHTML(
+          msg.final_answer || 'No synthesized answer recorded.',
+          meta,
+          msg.id,
+          msg.level || 'standard',
+          msg.model_used || 'openrouter',
+          msg.feedback,
+          msg.feedback_note
+        );
+
+        msgExchangeDiv.innerHTML = qHeader;
+        msgExchangeDiv.appendChild(histTimelineDiv);
+
+        var aDiv = document.createElement('div');
+        aDiv.innerHTML = answerCardHTML;
+        msgExchangeDiv.appendChild(aDiv);
+
+        threadExchanges.appendChild(msgExchangeDiv);
       });
 
-      // Render the final answer card with metrics and sources
-      var meta = {
-        sources: session.sources || [],
-        search_count: session.search_count || 0,
-        elapsed_seconds: session.elapsed_seconds || 0,
-        hit_cap: false
-      };
-      if (session.final_answer) {
-        renderAnswer(session.final_answer, meta);
-        setStatus('idle', 'Archived session \u00B7 ' + (session.search_count || 0) + ' searches');
-      } else {
-        renderAnswer('No synthesized answer was recorded for this session.', meta);
-        setStatus('idle', 'Archived session');
-      }
+      setStatus('idle', 'Thread loaded · ' + messages.length + (messages.length === 1 ? ' turn' : ' turns'));
 
       // Automatically collapse sidebar on mobile upon tapping a session
       if (window.innerWidth <= 780 && typeof toggleSidebar === 'function') {
         toggleSidebar(false);
       }
 
-      // Scroll smoothly to top of research screen
+      // Scroll to bottom of thread
       setTimeout(function() {
-        contentArea.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 50);
+        contentArea.scrollTo({ top: contentArea.scrollHeight, behavior: 'smooth' });
+        qInput.placeholder = 'Ask a follow-up in this thread…';
+        qInput.focus();
+      }, 80);
     }
 
     function escapeHtml(str) {

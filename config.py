@@ -49,6 +49,14 @@ MAX_TURNS: int = 8
 MAX_RETRIES: int = 3
 RETRY_BASE_SECONDS: float = 1.0
 
+# ── Research Levels ───────────────────────────────────────────────────────────
+RESEARCH_LEVELS = {
+    "standard": {"max_turns": 4, "label": "Standard"},
+    "extended": {"max_turns": 12, "label": "Extended"},
+}
+DEFAULT_RESEARCH_LEVEL: str = "standard"
+
+
 # ── Persistent memory ─────────────────────────────────────────────────────────
 DB_PATH: Path = Path(__file__).parent / "wayfinder_memory.db"
 MAX_MEMORY_SESSIONS: int = int(os.environ.get("MAX_MEMORY_SESSIONS", "200"))

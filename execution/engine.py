@@ -24,6 +24,8 @@ class AgentRunResult(BaseModel):
     search_count: int = 0
     elapsed_seconds: float = 0.0
     sources: List[str] = []
+    model_used: Optional[str] = None
+    level: str = "standard"
     error: Optional[str] = None
 
 class LoopEngine:
@@ -41,13 +43,15 @@ class LoopEngine:
         parent_track_id: Optional[str],
         stop_conditions: List[StopCondition],
         governor: IterationGovernor,
-        error_handler: ErrorHandler
+        error_handler: ErrorHandler,
+        level: str = "standard"
     ) -> AgentRunResult:
 
         run_start = datetime.datetime.now(datetime.timezone.utc)
         search_count = 0
         sources: List[str] = []
         stall_turn_count = 0
+        last_model_used = getattr(provider, "model_name", None)
 
         while True:
             # 1. Tick governor
@@ -68,6 +72,10 @@ class LoopEngine:
 
             # 3. Call Provider
             response = await provider.complete(req)
+            if response.raw and isinstance(response.raw, dict):
+                actual_model = response.raw.get("model")
+                if actual_model:
+                    last_model_used = actual_model
 
             # 4. Parse Action
             action = OutputParser.parse(response)
@@ -228,7 +236,7 @@ class LoopEngine:
                             summary=summary,
                             final_output=action.final_answer if action.type == ActionType.FINAL_ANSWER else None,
                             # Rich meta packed into label so frontend can parse it
-                            label=f"search_count={search_count}|elapsed={elapsed}|source_count={len(sources)}|sources={','.join(sources)}"
+                            label=f"search_count={search_count}|elapsed={elapsed}|source_count={len(sources)}|sources={','.join(sources)}|model_used={last_model_used or ''}|level={level}"
                         )
                     ))
 
@@ -242,6 +250,8 @@ class LoopEngine:
                         search_count=search_count,
                         elapsed_seconds=elapsed,
                         sources=sources,
+                        model_used=last_model_used,
+                        level=level,
                         error=None
                     )
 

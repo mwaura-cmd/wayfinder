@@ -1,7 +1,8 @@
 import uuid
 import datetime
-from typing import List
+from typing import List, Optional, Dict, Any
 
+import config
 from core.provider import ProviderRegistry
 from core.tools import ToolRegistry
 from core.skills import SkillRegistry
@@ -21,7 +22,9 @@ async def run_sequential_agent(
     role_prompt: str,
     telemetry: TelemetryHub,
     track_id: str,          # Passed in from main.py so frontend can subscribe by the same ID
-    max_steps: int = 15
+    max_steps: Optional[int] = None,
+    level: str = "standard",
+    prior_messages: Optional[List[Dict[str, Any]]] = None,
 ) -> AgentRunResult:
     
     provider = ProviderRegistry.get(provider_id)
@@ -30,10 +33,18 @@ async def run_sequential_agent(
     # Optional skills depending on whether they are registered
     skills = SkillRegistry.get_by_domain(skill_domain) if skill_domain else []
 
-    # Use the provided track_id so the frontend subscription matches
+    # Determine turn cap based on research level
+    if max_steps is None:
+        level_cfg = config.RESEARCH_LEVELS.get(
+            level, config.RESEARCH_LEVELS.get(config.DEFAULT_RESEARCH_LEVEL, {"max_turns": 4})
+        )
+        effective_max_steps = level_cfg["max_turns"]
+    else:
+        effective_max_steps = max_steps
+
     working_memory = WorkingMemory()
     episodic_memory = EpisodicMemory()
-    governor = IterationGovernor(max_steps=max_steps, timeout_seconds=120)
+    governor = IterationGovernor(max_steps=effective_max_steps, timeout_seconds=120)
     stop_conditions = StopConditionRegistry.defaults()
     error_handler = ErrorHandler()
 
@@ -45,6 +56,17 @@ async def run_sequential_agent(
     )
 
     working_memory.add_message("system", system_prompt)
+
+    # If this is a conversational follow-up, seed working memory with prior thread context
+    if prior_messages:
+        for pm in prior_messages:
+            q = pm.get("question") or ""
+            a = pm.get("answer") or ""
+            if q:
+                working_memory.add_message("user", q)
+            if a:
+                working_memory.add_message("model", a)
+
     working_memory.add_message("user", prompt)
 
     await telemetry.emit(TelemetryEvent(
@@ -73,5 +95,7 @@ async def run_sequential_agent(
         parent_track_id=None,
         stop_conditions=stop_conditions,
         governor=governor,
-        error_handler=error_handler
+        error_handler=error_handler,
+        level=level
     )
+

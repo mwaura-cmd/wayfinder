@@ -58,6 +58,7 @@ Rules:
 - Never skip the NARRATIVE line.
 - Never mix Format A and Format B in one response.
 - Do NOT produce a narrative node that merely announces you are about to answer (e.g. "I can now provide a summary", "I have gathered enough evidence") without immediately including the actual Final Answer: block in that same response. If you have enough evidence to answer, output the Final Answer: block directly — do not narrate your intent to answer as a separate step first.
+- If the user's message is a follow-up to a previous answer in this thread, use the prior answer and sources as context — only search the web again if the follow-up genuinely requires new information the prior answer didn't cover. Do not re-research from scratch for a simple clarification or extension of a prior topic.
 - After each Observation you receive, output the next Format A or Format B — never stop mid-way.
 - When in doubt, do one more search rather than guessing."""
 
