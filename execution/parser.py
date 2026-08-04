@@ -31,11 +31,11 @@ class AgentAction(BaseModel):
 
 
 # ── Compiled patterns (text-based ReAct format) ──────────────────────────────
-_NARRATIVE_RE  = re.compile(r"(?:\*\*|###\s*)?(?:NARRATIVE|NARRATIVE_START)(?:\*\*)?:\s*(.+?)(?=\n(?:\*\*|###\s*)?(?:Thought|Action|Final Answer|FINAL_ANSWER)|\Z)", re.IGNORECASE | re.DOTALL)
-_THOUGHT_RE    = re.compile(r"(?:\*\*|###\s*)?Thought(?:\*\*)?:\s*(.+?)(?=\n(?:\*\*|###\s*)?(?:Action|Final Answer|FINAL_ANSWER)|\Z)", re.IGNORECASE | re.DOTALL)
-_ACTION_RE     = re.compile(r"(?:\*\*|###\s*)?Action(?:\*\*)?:\s*([\w_]+)", re.IGNORECASE)
-_INPUT_RE      = re.compile(r"(?:\*\*|###\s*)?Action Input(?:\*\*)?:\s*(\{.*)", re.IGNORECASE | re.DOTALL)
-_FINAL_RE      = re.compile(r"(?:\*\*|###\s*)?(?:Final Answer|FINAL_ANSWER)(?:\*\*)?:\s*(.+)", re.IGNORECASE | re.DOTALL)
+_NARRATIVE_RE  = re.compile(r"(?:\*\*|###\s*)?(?:NARRATIVE|NARRATIVE_START)(?:\*\*)?[:\s]*(?:\*\*)?[:\s]*\s*(.+?)(?=\n(?:\*\*|###\s*)?(?:Thought|Action|Final\s*Answer|FINAL_ANSWER|Final\s*Synthesis)|\Z)", re.IGNORECASE | re.DOTALL)
+_THOUGHT_RE    = re.compile(r"(?:\*\*|###\s*)?Thought(?:\*\*)?[:\s]*(?:\*\*)?[:\s]*\s*(.+?)(?=\n(?:\*\*|###\s*)?(?:Action|Final\s*Answer|FINAL_ANSWER|Final\s*Synthesis)|\Z)", re.IGNORECASE | re.DOTALL)
+_ACTION_RE     = re.compile(r"(?:\*\*|###\s*)?Action(?:\*\*)?[:\s]*(?:\*\*)?[:\s]*\s*([\w_]+)", re.IGNORECASE)
+_INPUT_RE      = re.compile(r"(?:\*\*|###\s*)?Action Input(?:\*\*)?[:\s]*(?:\*\*)?[:\s]*\s*(\{.*)", re.IGNORECASE | re.DOTALL)
+_FINAL_RE      = re.compile(r"(?:\*\*|###\s*)?(?:Final\s*Answer|FINAL_ANSWER|Final\s*Synthesis)(?:\*\*)?[:\s]*(?:\*\*)?[:\s]*\s*(.+)", re.IGNORECASE | re.DOTALL)
 
 
 def _extract_first_json(text: str) -> dict:
@@ -119,7 +119,8 @@ class OutputParser:
         # ── Check for Final Answer: ────────────────────────────────────────────
         m = _FINAL_RE.search(raw)
         if m:
-            final_answer = m.group(1).strip()
+            extracted_ans = m.group(1).strip()
+            final_answer = extracted_ans if extracted_ans else raw.strip()
             if not narrative:
                 narrative = "I have enough information. Here is my answer."
             return AgentAction(

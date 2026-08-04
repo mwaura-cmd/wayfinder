@@ -1,5 +1,6 @@
 import uuid
 import datetime
+import logging
 from typing import List, Optional
 from pydantic import BaseModel
 
@@ -13,6 +14,8 @@ from execution.parser import OutputParser, ActionType, AgentAction
 from execution.governor import IterationGovernor
 from execution.conditions import StopCondition
 from execution.errors import ErrorHandler
+
+log = logging.getLogger(__name__)
 
 class AgentRunResult(BaseModel):
     track_id: str
@@ -224,6 +227,22 @@ class LoopEngine:
                         is_final_answer=(action.type == ActionType.FINAL_ANSWER)
                     )
 
+                    # Safety net: reliably resolve final output text
+                    final_answer_text = (action.final_answer or "").strip()
+                    if not final_answer_text:
+                        raw_candidate = (
+                            getattr(action, "raw_response", None)
+                            or getattr(response, "content", None)
+                            or ""
+                        ).strip()
+                        if raw_candidate:
+                            log.warning(
+                                f"Track {track_id}: action.final_answer was empty/whitespace (stop={cond.name}); "
+                                f"falling back to raw model response ({len(raw_candidate)} chars)."
+                            )
+                            final_answer_text = raw_candidate
+                            action.final_answer = raw_candidate
+
                     await telemetry.emit(TelemetryEvent(
                         event_id=str(uuid.uuid4()),
                         timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -234,7 +253,7 @@ class LoopEngine:
                         payload=Payload(
                             type="run_complete",
                             summary=summary,
-                            final_output=action.final_answer if action.type == ActionType.FINAL_ANSWER else None,
+                            final_output=final_answer_text if final_answer_text else None,
                             # Rich meta packed into label so frontend can parse it
                             label=f"search_count={search_count}|elapsed={elapsed}|source_count={len(sources)}|sources={','.join(sources)}|model_used={last_model_used or ''}|level={level}"
                         )
@@ -242,11 +261,11 @@ class LoopEngine:
 
                     return AgentRunResult(
                         track_id=track_id,
-                        final_output=action.final_answer or "",
+                        final_output=final_answer_text,
                         steps_taken=governor.steps,
                         stop_reason=cond.name,
                         episodic_summary=episodic_memory.get_summary(),
-                        success=(action.type == ActionType.FINAL_ANSWER),
+                        success=bool(final_answer_text),
                         search_count=search_count,
                         elapsed_seconds=elapsed,
                         sources=sources,

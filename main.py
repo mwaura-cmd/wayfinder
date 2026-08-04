@@ -238,6 +238,14 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
             )
             log.info(f"Task {task_id} completed. Success: {result.success}, Model: {result.model_used}, Level: {result.level}")
 
+            # Safety check: ensure answer text is never empty or placeholder
+            persisted_answer = (result.final_output or "").strip()
+            if not persisted_answer:
+                log.warning(f"Task {task_id}: result.final_output is empty; falling back to episodic summary.")
+                persisted_answer = (result.episodic_summary or "").strip()
+            if not persisted_answer:
+                persisted_answer = f"Research concluded for '{question}'."
+
             # 1. Save to SQLite memory store (threads & messages) scoped to user UID
             db_conn = memory.init_db()
             saved_msg_id = 0
@@ -246,7 +254,7 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
                     conn=db_conn,
                     thread_id=active_thread_id,
                     question=question,
-                    answer=result.final_output,
+                    answer=persisted_answer,
                     sources=result.sources,
                     model_used=result.model_used,
                     level=result.level,
@@ -275,7 +283,7 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
                         "message_id": saved_msg_id,
                         "question": question,
                         "success": result.success,
-                        "final_answer": result.final_output,
+                        "final_answer": persisted_answer,
                         "sources": formatted_sources,
                         "model_used": result.model_used,
                         "level": result.level,

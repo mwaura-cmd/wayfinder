@@ -3109,7 +3109,8 @@
         messages = [{
           id: thread.id || 1,
           question: thread.question || thread.title || '',
-          final_answer: thread.final_answer || '',
+          answer: thread.answer || thread.final_answer || '',
+          final_answer: thread.final_answer || thread.answer || '',
           sources: thread.sources || [],
           search_count: thread.search_count || 1,
           elapsed_seconds: thread.elapsed_seconds || 0,
@@ -3172,8 +3173,9 @@
           message_id: msg.id
         };
 
+        var answerText = msg.answer || msg.final_answer || 'No synthesized answer recorded.';
         var answerCardHTML = buildAnswerCardHTML(
-          msg.final_answer || 'No synthesized answer recorded.',
+          answerText,
           meta,
           msg.id,
           msg.level || 'standard',
