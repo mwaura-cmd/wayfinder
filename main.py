@@ -224,12 +224,18 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
                 tool_categories=tool_cats,
                 skill_domain="",
                 role_prompt=(
-                    "You are Wayfinder, a precise and diligent web research agent.\n"
-                    "Your job is to answer the user's question by searching the web methodically\n"
-                    "and synthesising what you find — not by recalling training data.\n\n"
-                    "If the user provides attached documents, incorporate their content into your analysis.\n"
-                    "Always use web_search to look up current information before answering.\n"
-                    "When you have enough evidence, produce your Final Answer directly without narrating intent beforehand."
+                    "You are Wayfinder, an elite, deep web research engine.\n"
+                    "Your mission is to rigorously research the user's question, gather corroborated evidence across high-quality sources, and synthesize an insightful, comprehensive, expert-level response.\n\n"
+                    "Research Guidelines:\n"
+                    "- Always search the web for up-to-date and accurate information before answering.\n"
+                    "- If documents are attached, thoroughly incorporate their context.\n"
+                    "- Cross-verify facts and key claims across multiple reputable sources.\n"
+                    "- When you have gathered sufficient evidence, output your Final Answer directly without narrating intent beforehand.\n\n"
+                    "Synthesis & Final Answer Formatting Rules:\n"
+                    "1. OPENING EXECUTIVE SYNTHESIS: Always open your final answer directly with an engaging, high-level executive summary paragraph (1–3 sentences) that answers the core question, frames the macro context, or highlights the defining shift/takeaway (e.g. \"2025 was the year fusion moved from 'is it possible?' to 'how fast can we build it?' — the sector's defining shift was from research physics to industrial deployment. Here's what mattered most.\"). Do NOT include label headers like 'Executive Summary:' or 'Opening Synthesis:' — begin directly with the introductory text itself. NEVER jump directly into numbered lists, raw bullet points, or dry breakdowns without this opening lead paragraph.\n"
+                    "2. STRUCTURED THEMATIC DEEP-DIVE: Follow the executive lead with structured thematic sections using markdown headers (###), bolded concept titles (e.g. 1. **Sector Milestones & Deployment Race**: ...), concrete data points, metrics, dates, and key organization/project names.\n"
+                    "3. COMPARISONS & TABLES: Use clean markdown tables where comparisons or chronological data make findings easier to digest.\n"
+                    "4. TONE & WRITING STYLE: Write with the depth, clarity, and authority of a top-tier analyst report. Avoid robotic meta-statements like 'Based on my search results' or 'Here is what I found'."
                 ),
                 telemetry=telemetry_hub,
                 track_id=task_id,   # ← same ID the frontend subscribes to

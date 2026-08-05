@@ -784,33 +784,17 @@
       border: 1px solid var(--wf-border);
       border-radius: var(--radius);
       overflow: hidden;
-    }
-    .answer-card-header {
-      padding: 10px 18px;
-      border-bottom: 1px solid var(--wf-border);
-      display: flex; align-items: center; gap: 8px;
-      background: var(--wf-surface-sub);
-    }
-    .answer-card-header-icon {
-      color: var(--wf-accent);
-      display: flex;
-      align-items: center;
-    }
-    .answer-card-header-label {
-      font-family: var(--font-mono);
-      font-size: 11px; font-weight: 500;
-      letter-spacing: 0.08em; text-transform: uppercase;
-      color: var(--wf-text-dim);
+      margin-top: 6px;
     }
 
     .answer-body {
-      padding: 22px 24px;
+      padding: 22px 24px 18px 24px;
       font-family: var(--font-sans);
-      font-size: 14px;
+      font-size: 14.5px;
       line-height: 1.75;
       color: var(--wf-text);
     }
-    .answer-body p { margin-bottom: 12px; }
+    .answer-body p { margin-bottom: 14px; }
     .answer-body p:last-child { margin-bottom: 0; }
     .answer-body strong { color: var(--wf-text); font-weight: 600; }
     .answer-body em { color: var(--wf-text-dim); font-style: italic; }
@@ -2514,12 +2498,6 @@
 
       var html =
         '<div class="answer-card" id="answer-card-' + msgId + '">' +
-          '<div class="answer-card-header">' +
-            '<span class="answer-card-header-icon">' +
-              '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
-            '</span>' +
-            '<span class="answer-card-header-label">Answer</span>' +
-          '</div>' +
           '<div class="answer-body">' + formatAnswer(text) + '</div>' +
           (sources.length > 0 ? renderSources(sources) : '') +
           '<div class="answer-card-footer">' +
@@ -2615,8 +2593,8 @@
       if (!text) return '';
       // Strip leading NARRATIVE / Thought blocks
       text = text.replace(/^(?:(?:\*\*|###\s*|##\s*|#\s*)?(?:NARRATIVE|NARRATIVE_START|Thought)(?:\*\*)?[:\s]*[^\n]*\n+)+/i, '');
-      // Strip leading Final Answer / Final Synthesis / FINAL_ANSWER / Answer markers
-      text = text.replace(/^(?:(?:\*\*|###\s*|##\s*|#\s*)?(?:Final\s*Answer|FINAL_ANSWER|Final\s*Synthesis|Answer)\s*(?:\*\*)?[:\s]*(?:\*\*)?[:\s]*)/i, '');
+      // Strip leading Final Answer / Final Synthesis / FINAL_ANSWER / Executive Summary / Answer markers
+      text = text.replace(/^(?:(?:\*\*|###\s*|##\s*|#\s*)?(?:Final\s*Answer|FINAL_ANSWER|Final\s*Synthesis|Executive\s*Summary|Opening\s*(?:Executive\s*)?Synthesis|Synthesis|Answer)\s*(?:\*\*)?[:\s]*(?:\*\*)?[:\s]*)/i, '');
       return text.trim();
     }
 

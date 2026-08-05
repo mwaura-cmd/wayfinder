@@ -63,9 +63,9 @@ def clean_final_answer(text: str) -> str:
         text,
         flags=re.IGNORECASE
     )
-    # Strip leading Final Answer / Final Synthesis / FINAL_ANSWER / Answer markers
+    # Strip leading Final Answer / Final Synthesis / FINAL_ANSWER / Executive Summary / Answer markers
     text = re.sub(
-        r'^(?:(?:\*\*|###\s*|\#\#\s*|\#\s*)?(?:Final\s*Answer|FINAL_ANSWER|Final\s*Synthesis|Answer)\s*(?:\*\*)?[:\s]*(?:\*\*)?[:\s]*)',
+        r'^(?:(?:\*\*|###\s*|\#\#\s*|\#\s*)?(?:Final\s*Answer|FINAL_ANSWER|Final\s*Synthesis|Executive\s*Summary|Opening\s*(?:Executive\s*)?Synthesis|Synthesis|Answer)\s*(?:\*\*)?[:\s]*(?:\*\*)?[:\s]*)',
         '',
         text.strip(),
         flags=re.IGNORECASE
