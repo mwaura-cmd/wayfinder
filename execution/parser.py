@@ -52,6 +52,27 @@ def _extract_first_json(text: str) -> dict:
     return {}
 
 
+def clean_final_answer(text: str) -> str:
+    """Clean ReAct artifacts and strip leading Final Answer markers from synthesized answer."""
+    if not text:
+        return ""
+    # Strip any leading NARRATIVE / Thought sections if raw text was passed
+    text = re.sub(
+        r'^(?:(?:\*\*|###\s*|\#\#\s*|\#\s*)?(?:NARRATIVE|NARRATIVE_START|Thought)(?:\*\*)?[:\s]*[^\n]*\n+)+',
+        '',
+        text,
+        flags=re.IGNORECASE
+    )
+    # Strip leading Final Answer / Final Synthesis / FINAL_ANSWER / Answer markers
+    text = re.sub(
+        r'^(?:(?:\*\*|###\s*|\#\#\s*|\#\s*)?(?:Final\s*Answer|FINAL_ANSWER|Final\s*Synthesis|Answer)\s*(?:\*\*)?[:\s]*(?:\*\*)?[:\s]*)',
+        '',
+        text.strip(),
+        flags=re.IGNORECASE
+    )
+    return text.strip()
+
+
 class OutputParser:
     @classmethod
     def parse(cls, response: LLMResponse) -> AgentAction:
@@ -120,7 +141,8 @@ class OutputParser:
         m = _FINAL_RE.search(raw)
         if m:
             extracted_ans = m.group(1).strip()
-            final_answer = extracted_ans if extracted_ans else raw.strip()
+            raw_ans = extracted_ans if extracted_ans else raw.strip()
+            final_answer = clean_final_answer(raw_ans)
             if not narrative:
                 narrative = "I have enough information. Here is my answer."
             return AgentAction(
@@ -141,3 +163,4 @@ class OutputParser:
             thought=thought,
             raw_response=raw,
         )
+

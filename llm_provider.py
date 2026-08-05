@@ -18,7 +18,7 @@ def get_llm_client_and_model(provider: str | None = None) -> tuple[OpenAI, str]:
     config.LLM_PROVIDER. Both providers use the OpenAI-compatible client —
     only base_url, api_key, and model differ.
     """
-    provider_name = (provider or getattr(config, "LLM_PROVIDER", "groq")).lower()
+    provider_name = (provider or getattr(config, "LLM_PROVIDER", "openrouter")).lower()
 
     if provider_name == "groq":
         key = getattr(config, "GROQ_API_KEY", "") or ""
@@ -54,7 +54,7 @@ def get_async_llm_client_and_model(provider: str | None = None) -> tuple[AsyncOp
     Returns (async_client, model_name) for the requested provider, defaulting to
     config.LLM_PROVIDER.
     """
-    provider_name = (provider or getattr(config, "LLM_PROVIDER", "groq")).lower()
+    provider_name = (provider or getattr(config, "LLM_PROVIDER", "openrouter")).lower()
 
     if provider_name == "groq":
         key = getattr(config, "GROQ_API_KEY", "") or ""

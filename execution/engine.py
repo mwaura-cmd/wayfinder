@@ -10,7 +10,7 @@ from core.skills import SkillDefinition
 from core.memory import WorkingMemory, EpisodicMemory
 from observability.telemetry import TelemetryHub, TelemetryEvent, Payload
 
-from execution.parser import OutputParser, ActionType, AgentAction
+from execution.parser import OutputParser, ActionType, AgentAction, clean_final_answer
 from execution.governor import IterationGovernor
 from execution.conditions import StopCondition
 from execution.errors import ErrorHandler
@@ -228,7 +228,7 @@ class LoopEngine:
                     )
 
                     # Safety net: reliably resolve final output text
-                    final_answer_text = (action.final_answer or "").strip()
+                    final_answer_text = clean_final_answer(action.final_answer or "")
                     if not final_answer_text:
                         raw_candidate = (
                             getattr(action, "raw_response", None)
@@ -240,8 +240,8 @@ class LoopEngine:
                                 f"Track {track_id}: action.final_answer was empty/whitespace (stop={cond.name}); "
                                 f"falling back to raw model response ({len(raw_candidate)} chars)."
                             )
-                            final_answer_text = raw_candidate
-                            action.final_answer = raw_candidate
+                            final_answer_text = clean_final_answer(raw_candidate)
+                            action.final_answer = final_answer_text
 
                     await telemetry.emit(TelemetryEvent(
                         event_id=str(uuid.uuid4()),

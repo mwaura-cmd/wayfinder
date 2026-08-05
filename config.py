@@ -33,7 +33,7 @@ FIREBASE_CREDENTIALS_JSON: str = os.environ.get("FIREBASE_CREDENTIALS_JSON", "")
 # ── LLM Provider Selection & Settings ─────────────────────────────────────────
 # LLM_PROVIDER controls which provider is active at runtime ("groq" | "openrouter").
 # Both providers' keys and models remain defined and switchable.
-LLM_PROVIDER: str = os.environ.get("LLM_PROVIDER", "groq")
+LLM_PROVIDER: str = os.environ.get("LLM_PROVIDER", "openrouter")
 
 GROQ_API_KEY: str = os.environ.get("GROQ_API_KEY", "")
 GROQ_MODEL: str = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")

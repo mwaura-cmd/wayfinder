@@ -261,11 +261,12 @@
       z-index: 100;
       pointer-events: auto;
     }
+
     .top-bar.bottom-bar {
       display: none;
-      align-items: center;
+      align-items: flex-end;
       gap: 10px;
-      padding: 12px 20px;
+      padding: 10px 16px;
       border-top: 1px solid var(--wf-border);
       border-bottom: none;
       background: var(--wf-surface);
@@ -286,18 +287,6 @@
       position: relative;
       width: 100%;
       height: 100%;
-    }
-
-    .main-top-nav {
-      position: absolute;
-      top: 12px;
-      left: 16px;
-      right: 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 100;
-      pointer-events: none;
     }
 
     .sidebar-toggle-btn {
@@ -321,28 +310,23 @@
       border-color: var(--wf-accent);
     }
 
-    .top-bar {
-      display: none;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 20px;
-      border-bottom: 1px solid var(--wf-border);
-      background: var(--wf-surface);
-      flex-shrink: 0;
-      z-index: 90;
-    }
-    .top-bar.visible { display: flex; }
-
     #question-input {
       flex: 1;
       background: var(--wf-bg);
       border: 1px solid var(--wf-border);
       border-radius: var(--radius-sm);
-      padding: 8px 12px;
+      padding: 9px 12px;
       color: var(--wf-text);
       font-family: var(--font-sans);
       font-size: 13.5px;
+      line-height: 1.45;
       outline: none;
+      resize: none;
+      min-height: 38px;
+      max-height: 160px;
+      height: 38px;
+      overflow-y: hidden;
+      box-sizing: border-box;
       transition: border-color 0.15s;
     }
     #question-input:focus { border-color: var(--wf-accent); }
@@ -350,11 +334,12 @@
     #question-input:disabled { opacity: 0.4; cursor: not-allowed; }
 
     #submit-btn {
-      display: flex; align-items: center; gap: 6px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
       background: var(--wf-accent);
       border: none;
       border-radius: var(--radius-sm);
-      padding: 8px 16px;
+      padding: 9px 16px;
+      height: 38px;
       color: var(--wf-bg);
       font-family: var(--font-sans);
       font-size: 13px;
@@ -363,6 +348,7 @@
       transition: opacity 0.15s;
       white-space: nowrap;
       flex-shrink: 0;
+      align-self: flex-end;
     }
     #submit-btn:hover:not(:disabled) { opacity: 0.9; }
     #submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -424,12 +410,13 @@
     }
     .hero-search-box {
       width: 100%;
-      display: flex; align-items: center;
+      display: flex; align-items: flex-end;
       background: var(--wf-surface);
       border: 1px solid var(--wf-border);
       border-radius: var(--radius-sm);
-      padding: 4px 6px 4px 14px;
+      padding: 4px 6px 4px 10px;
       transition: border-color 0.15s;
+      gap: 4px;
     }
     .hero-search-box:focus-within {
       border-color: var(--wf-accent);
@@ -441,17 +428,25 @@
       color: var(--wf-text);
       font-family: var(--font-sans);
       font-size: 14px;
-      padding: 8px 0;
+      line-height: 1.45;
+      padding: 7px 4px;
+      resize: none;
+      min-height: 36px;
+      max-height: 160px;
+      height: 36px;
+      overflow-y: hidden;
+      box-sizing: border-box;
     }
     #hero-question-input::placeholder { color: var(--wf-text-faint); }
     #hero-question-input:disabled { opacity: 0.5; }
 
     #hero-submit-btn {
-      display: flex; align-items: center; gap: 6px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
       background: var(--wf-accent);
       border: none;
       border-radius: var(--radius-sm);
       padding: 9px 16px;
+      height: 36px;
       color: var(--wf-bg);
       font-family: var(--font-sans);
       font-size: 13px;
@@ -460,6 +455,7 @@
       transition: opacity 0.15s;
       white-space: nowrap;
       flex-shrink: 0;
+      align-self: flex-end;
     }
     #hero-submit-btn:hover { opacity: 0.9; }
     #hero-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -470,11 +466,14 @@
       color: var(--wf-text-dim);
       cursor: pointer;
       padding: 6px 8px;
+      height: 36px;
       border-radius: var(--radius-sm);
       display: inline-flex;
       align-items: center;
       justify-content: center;
       transition: color 0.15s, background 0.15s;
+      flex-shrink: 0;
+      align-self: flex-end;
     }
     .input-action-btn:hover {
       color: var(--wf-text);
@@ -778,7 +777,7 @@
       padding: 22px 24px;
       font-family: var(--font-sans);
       font-size: 14px;
-      line-height: 1.8;
+      line-height: 1.75;
       color: var(--wf-text);
     }
     .answer-body p { margin-bottom: 12px; }
@@ -787,11 +786,57 @@
     .answer-body em { color: var(--wf-text-dim); font-style: italic; }
     .answer-body h2 {
       font-family: var(--font-display);
-      font-size: 16px; font-weight: 600;
-      margin: 22px 0 10px; color: var(--wf-text);
+      font-size: 17px; font-weight: 600;
+      margin: 20px 0 10px; color: var(--wf-text);
+      letter-spacing: -0.01em;
     }
-    .answer-body ul, .answer-body ol { padding-left: 20px; margin-bottom: 12px; }
-    .answer-body li { margin-bottom: 5px; }
+    .answer-body h3 {
+      font-family: var(--font-sans);
+      font-size: 15px; font-weight: 600;
+      margin: 16px 0 8px; color: var(--wf-text);
+    }
+    .answer-body h4 {
+      font-family: var(--font-sans);
+      font-size: 13.5px; font-weight: 600;
+      margin: 14px 0 6px; color: var(--wf-text-dim);
+    }
+    .answer-body ul, .answer-body ol {
+      padding-left: 22px;
+      margin: 8px 0 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .answer-body li { line-height: 1.65; margin-bottom: 3px; }
+    .answer-body blockquote {
+      border-left: 3px solid var(--wf-accent);
+      padding: 8px 14px;
+      margin: 12px 0;
+      color: var(--wf-text-dim);
+      background: var(--wf-surface-sub);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      font-style: italic;
+    }
+    .answer-body pre {
+      background: var(--wf-surface-sub);
+      border: 1px solid var(--wf-border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--wf-text);
+      margin: 14px 0;
+    }
+    .answer-body code {
+      font-family: var(--font-mono);
+      font-size: 0.88em;
+      background: var(--wf-surface-sub);
+      border: 1px solid var(--wf-border);
+      padding: 2px 5px;
+      border-radius: 3px;
+      color: var(--wf-accent);
+    }
     .answer-body a { color: var(--wf-accent); text-decoration: underline; text-underline-offset: 3px; }
 
     .sources-section { padding: 14px 18px; border-top: 1px solid var(--wf-border); }
@@ -831,25 +876,6 @@
     .error-icon { color: var(--wf-error); flex-shrink: 0; display: flex; }
     .error-text { font-size: 13px; color: var(--wf-error); line-height: 1.6; font-family: var(--font-mono); }
 
-    /* ── Status Bar ────────────────────────────────────────────── */
-    .status-bar {
-      height: 32px;
-      flex-shrink: 0;
-      background: var(--wf-surface);
-      border-top: 1px solid var(--wf-border);
-      display: flex; align-items: center;
-      padding: 0 16px; gap: 20px;
-      font-size: 11px;
-      font-family: var(--font-mono);
-      color: var(--wf-text-faint);
-      user-select: none;
-      z-index: 20;
-    }
-    .status-item {
-      display: flex; align-items: center; gap: 6px;
-      white-space: nowrap;
-    }
-    .status-item.right { margin-left: auto; }
     .status-diamond {
       width: 6px; height: 6px;
       background: var(--wf-success);
@@ -1340,18 +1366,6 @@
       font-size: 12px;
       color: var(--wf-text);
     }
-    .status-pulse-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--wf-success);
-      box-shadow: 0 0 8px var(--wf-success);
-      animation: pulse-success 2.5s infinite;
-    }
-    @keyframes pulse-success {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.45; transform: scale(0.85); }
-    }
     .footer-meta-tag {
       font-family: var(--font-mono);
       font-size: 11px;
@@ -1504,28 +1518,12 @@
       font-weight: 600;
     }
 
-    /* ── Model Attribution & Level Badges ──────────────────────── */
+    /* ── Level Badges ─────────────────────────────────────────── */
     .answer-card-meta {
       margin-left: auto;
       display: flex;
       align-items: center;
       gap: 8px;
-    }
-    .model-badge {
-      font-family: var(--font-mono);
-      font-size: 10.5px;
-      color: var(--wf-accent);
-      background: var(--wf-surface);
-      border: 1px solid var(--wf-border);
-      padding: 2px 8px;
-      border-radius: var(--radius-sm);
-      max-width: 240px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
     }
     .level-badge {
       font-family: var(--font-mono);
@@ -1995,7 +1993,6 @@
           <div class="footer-links-col">
             <div class="footer-links-heading">System</div>
             <div class="system-status-indicator">
-              <span class="status-pulse-dot"></span>
               <span>All Systems Operational</span>
             </div>
             <span class="footer-meta-tag">v2.4.0 &middot; open-standards</span>
@@ -2112,7 +2109,7 @@
                     <line x1="8" y1="23" x2="16" y2="23"/>
                   </svg>
                 </button>
-                <input id="hero-question-input" type="text" placeholder="What do you want to research?" autocomplete="off" spellcheck="true" />
+                <textarea id="hero-question-input" rows="1" placeholder="What do you want to research?" autocomplete="off" spellcheck="true"></textarea>
                 <button type="button" id="hero-submit-btn">Start Research</button>
               </div>
               <div class="level-selector" id="hero-level-selector" style="margin-top: 12px;">
@@ -2174,7 +2171,7 @@
               <line x1="8" y1="23" x2="16" y2="23"/>
             </svg>
           </button>
-          <input id="question-input" type="text" placeholder="Ask a follow-up or new question&hellip;" autocomplete="off" spellcheck="true" />
+          <textarea id="question-input" rows="1" placeholder="Ask a follow-up or new question&hellip;" autocomplete="off" spellcheck="true"></textarea>
           <div class="level-selector" id="topbar-level-selector">
             <button type="button" class="level-btn active" data-level="standard" onclick="setResearchLevel('standard')">Standard</button>
             <button type="button" class="level-btn" data-level="extended" onclick="setResearchLevel('extended')">Extended</button>
@@ -2183,17 +2180,6 @@
         </div>
 
       </div>
-
-    <!-- Status Bar -->
-    <div class="status-bar" id="status-bar">
-      <div class="status-item" id="status-main">
-        <div class="status-diamond" id="status-diamond"></div>
-        <span id="status-text">Ready</span>
-      </div>
-      <div class="status-item right" id="status-searches" style="display:none;">
-        <span id="status-search-count"></span>
-      </div>
-    </div>
 
   </div>
 
@@ -2231,6 +2217,15 @@
     var scrollBtn             = document.getElementById('scroll-btn');
     var researchQDisplay      = document.getElementById('research-question-display');
 
+    function autoResizeInput(el, minH, maxH) {
+      if (!el) return;
+      el.style.height = 'auto';
+      var scrollH = el.scrollHeight;
+      var newH = Math.min(Math.max(scrollH, minH), maxH);
+      el.style.height = newH + 'px';
+      el.style.overflowY = scrollH > maxH ? 'auto' : 'hidden';
+    }
+
     function setResearchLevel(level) {
       currentResearchLevel = level === 'extended' ? 'extended' : 'standard';
       var allBtns = document.querySelectorAll('.level-btn');
@@ -2247,6 +2242,9 @@
       if (currentEventSource) { currentEventSource.close(); currentEventSource = null; }
       currentThreadId = null;
       activeExchangeQ = '';
+      heroQInput.value = '';
+      heroQInput.style.height = '36px';
+      heroQInput.style.overflowY = 'hidden';
       heroPreloader.style.display = 'flex';
       researchArea.style.display  = 'none';
       topbar.classList.remove('visible');
@@ -2284,18 +2282,26 @@
     function fillQuestion(chipEl) {
       if (heroPreloader.style.display !== 'none') {
         heroQInput.value = chipEl.textContent.trim();
+        autoResizeInput(heroQInput, 36, 160);
         heroQInput.focus();
       } else {
         qInput.value = chipEl.textContent.trim();
+        autoResizeInput(qInput, 38, 160);
         qInput.focus();
       }
     }
 
+    heroQInput.addEventListener('input', function() {
+      autoResizeInput(heroQInput, 36, 160);
+    });
     heroQInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); startResearch(true); }
     });
     heroSubmitBtn.addEventListener('click', function() { startResearch(true); });
 
+    qInput.addEventListener('input', function() {
+      autoResizeInput(qInput, 38, 160);
+    });
     qInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); startResearch(false); }
     });
@@ -2444,10 +2450,6 @@
             '<span class="answer-card-header-label">Answer</span>' +
             '<div class="answer-card-meta">' +
               '<span class="level-badge">' + escapeHtml(lvl) + '</span>' +
-              '<span class="model-badge" title="Model: ' + escapeHtml(model) + '">' +
-                '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18"/></svg>' +
-                escapeHtml(model) +
-              '</span>' +
             '</div>' +
           '</div>' +
           '<div class="answer-body">' + formatAnswer(text) + '</div>' +
@@ -2548,20 +2550,83 @@
       }, 80);
     }
 
+    function cleanFinalAnswer(text) {
+      if (!text) return '';
+      // Strip leading NARRATIVE / Thought blocks
+      text = text.replace(/^(?:(?:\*\*|###\s*|##\s*|#\s*)?(?:NARRATIVE|NARRATIVE_START|Thought)(?:\*\*)?[:\s]*[^\n]*\n+)+/i, '');
+      // Strip leading Final Answer / Final Synthesis / FINAL_ANSWER / Answer markers
+      text = text.replace(/^(?:(?:\*\*|###\s*|##\s*|#\s*)?(?:Final\s*Answer|FINAL_ANSWER|Final\s*Synthesis|Answer)\s*(?:\*\*)?[:\s]*(?:\*\*)?[:\s]*)/i, '');
+      return text.trim();
+    }
+
     function formatAnswer(text) {
-      var html = escapeHtml(text)
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .replace(/`(.+?)`/g, '<code style="font-family:var(--font-mono);font-size:0.88em;background:var(--wf-surface-sub);border:1px solid var(--wf-border);padding:1px 5px;border-radius:3px;color:var(--wf-accent);">$1</code>')
-        .replace(/\[Source (\d+)\]/g, '<sup style="color:var(--wf-accent);font-family:var(--font-mono);font-size:0.75em;">[S$1]</sup>')
-        .replace(/^#{2,3}\s+(.+)$/gm, '<h2>$1</h2>')
-        .replace(/^[-\u2022]\s+(.+)$/gm, '<li>$1</li>')
-        .replace(/(<li>.+<\/li>\n?)+/g, '<ul>$&</ul>')
-        .split('\n\n')
+      if (!text) return '';
+      text = cleanFinalAnswer(text);
+
+      // Handle code blocks before escaping
+      var codeBlocks = [];
+      text = text.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, function(match, lang, code) {
+        var placeholder = '@@CODEBLOCK_' + codeBlocks.length + '@@';
+        codeBlocks.push('<pre><code>' + escapeHtml(code.trim()) + '</code></pre>');
+        return placeholder;
+      });
+
+      // Escape remaining html
+      var html = escapeHtml(text);
+
+      // Inline code
+      html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+      // Bold & Italics
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+      html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+      html = html.replace(/_([^_]+)_/g, '<em>$1</em>');
+
+      // Headings
+      html = html.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>');
+      html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
+      html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
+      html = html.replace(/^#\s+(.+)$/gm, '<h2>$1</h2>');
+
+      // Blockquotes
+      html = html.replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>');
+
+      // Citations / Sources
+      html = html.replace(/\[Source\s*(\d+)\]/gi, '<sup style="color:var(--wf-accent);font-family:var(--font-mono);font-size:0.75em;">[S$1]</sup>');
+      html = html.replace(/\[S(\d+)\]/gi, '<sup style="color:var(--wf-accent);font-family:var(--font-mono);font-size:0.75em;">[S$1]</sup>');
+
+      // Lists: Unordered and Ordered
+      html = html.replace(/^[\*\-\u2022]\s+(.+)$/gm, '<li class="wf-li-ul">$1</li>');
+      html = html.replace(/^\d+\.\s+(.+)$/gm, '<li class="wf-li-ol">$1</li>');
+
+      // Wrap list items
+      html = html.replace(/(<li class="wf-li-ul">.+<\/li>\n?)+/g, function(match) {
+        return '<ul>' + match.replace(/ class="wf-li-ul"/g, '') + '</ul>';
+      });
+      html = html.replace(/(<li class="wf-li-ol">.+<\/li>\n?)+/g, function(match) {
+        return '<ol>' + match.replace(/ class="wf-li-ol"/g, '') + '</ol>';
+      });
+
+      // Split paragraphs
+      html = html.split(/\n\s*\n/)
         .map(function(p) { return p.trim(); })
         .filter(function(p) { return p; })
-        .map(function(p) { return p.startsWith('<h2>') || p.startsWith('<ul>') ? p : '<p>' + p + '</p>'; })
+        .map(function(p) {
+          if (p.startsWith('<h2>') || p.startsWith('<h3>') || p.startsWith('<h4>') ||
+              p.startsWith('<ul>') || p.startsWith('<ol>') || p.startsWith('<blockquote>') ||
+              p.startsWith('<pre>') || p.startsWith('@@CODEBLOCK_')) {
+            return p;
+          }
+          return '<p>' + p.replace(/\n/g, '<br/>') + '</p>';
+        })
         .join('\n');
+
+      // Restore code blocks
+      codeBlocks.forEach(function(cb, i) {
+        html = html.replace(new RegExp('@@CODEBLOCK_' + i + '@@', 'g'), cb);
+      });
+
       return html;
     }
 
