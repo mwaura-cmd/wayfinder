@@ -709,44 +709,74 @@
     /* ── Answer Section ────────────────────────────────────────── */
     #answer-section { display: flex; flex-direction: column; gap: 14px; margin-top: 6px; }
 
-    .completion-bar {
-      display: flex; align-items: center; gap: 12px;
-      padding: 11px 16px;
-      background: var(--wf-surface);
-      border: 1px solid var(--wf-border);
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      transition: border-color 0.15s;
-    }
-    .completion-bar:hover { border-color: var(--wf-accent); }
-    .completion-bar-icon {
-      color: var(--wf-success);
+    /* ── Sleek Research Trail Accordion Bar ────────────────────────── */
+    .trail-accordion-bar {
       display: flex;
       align-items: center;
-      flex-shrink: 0;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: var(--wf-surface);
+      border: 1px solid var(--wf-border);
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.18s ease;
     }
-    .completion-bar-icon.warn {
+    .trail-accordion-bar:hover {
+      border-color: var(--wf-border-focus);
+      background: var(--wf-surface-sub);
+    }
+    .trail-accordion-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .trail-status-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: #10b981;
+    }
+    .trail-status-icon.warn {
       color: var(--wf-error);
     }
-    .completion-bar-msg {
-      font-size: 12.5px; font-weight: 500;
-      color: var(--wf-success); flex: 1;
-      font-family: var(--font-mono);
+    .trail-status-text {
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--wf-text);
+      letter-spacing: -0.01em;
     }
-    .completion-bar-stats { display: flex; gap: 8px; }
-    .stat-tag {
-      background: var(--wf-bg);
-      border: 1px solid var(--wf-border);
-      border-radius: var(--radius-sm);
-      padding: 2px 8px;
-      font-size: 11px;
+    .trail-accordion-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
       color: var(--wf-text-dim);
-      font-family: var(--font-mono);
     }
-    .completion-hint {
-      font-size: 11px; color: var(--wf-text-faint);
-      font-family: var(--font-mono);
-      margin-top: 2px;
+    .trail-chevron {
+      color: var(--wf-text-dim);
+      transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .trail-accordion-bar.open {
+      border-color: var(--wf-border-focus);
+      background: var(--wf-surface-sub);
+    }
+    .trail-accordion-bar.open .trail-chevron {
+      transform: rotate(180deg);
+    }
+    .exchange-timeline {
+      display: flex;
+      flex-direction: column;
+      margin-top: 4px;
+      margin-bottom: 6px;
+      padding: 14px 16px 6px 16px;
+      background: rgba(13, 19, 28, 0.45);
+      border: 1px solid var(--wf-border);
+      border-radius: 8px;
     }
 
     .answer-card {
@@ -838,6 +868,37 @@
       color: var(--wf-accent);
     }
     .answer-body a { color: var(--wf-accent); text-decoration: underline; text-underline-offset: 3px; }
+
+    /* ── Markdown Tables ────────────────────────────────────────── */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      margin: 16px 0;
+      border: 1px solid var(--wf-border);
+      border-radius: var(--radius-sm);
+    }
+    .wf-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+    .wf-table th, .wf-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--wf-border);
+    }
+    .wf-table th {
+      background: var(--wf-surface-sub);
+      font-weight: 600;
+      color: var(--wf-text);
+      font-family: var(--font-sans);
+    }
+    .wf-table tr:last-child td {
+      border-bottom: none;
+    }
+    .wf-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
 
     .sources-section { padding: 14px 18px; border-top: 1px solid var(--wf-border); }
     .sources-label {
@@ -1518,24 +1579,6 @@
       font-weight: 600;
     }
 
-    /* ── Level Badges ─────────────────────────────────────────── */
-    .answer-card-meta {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .level-badge {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      color: var(--wf-text-dim);
-      background: var(--wf-bg);
-      border: 1px solid var(--wf-border);
-      padding: 2px 6px;
-      border-radius: var(--radius-sm);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
 
     /* ── Feedback Controls in Answer Card ──────────────────────── */
     .answer-card-footer {
@@ -2407,50 +2450,75 @@
       }
     }
 
-    function buildAnswerCardHTML(text, meta, messageId, level, modelUsed, initialFeedback, initialFeedbackNote) {
-      var sources     = meta.sources || [];
-      var elapsed     = meta.elapsed_seconds || 0;
-      var searchCount = meta.search_count || 0;
-      var hitCap      = meta.hit_cap || false;
-      var model       = modelUsed || meta.model_used || 'openrouter';
-      var lvl         = level || meta.level || 'standard';
-      var msgId       = messageId || meta.message_id || ('msg_' + Math.random().toString(36).slice(2));
+    function formatElapsedDisplay(elapsed) {
+      if (!elapsed || isNaN(elapsed) || elapsed <= 0) return '';
+      var num = parseFloat(elapsed);
+      return num >= 10 ? Math.round(num) + 's' : num.toFixed(1) + 's';
+    }
 
-      var summaryMsg = '';
+    function buildTrailAccordionHTML(meta, messageId) {
+      var elapsed = meta.elapsed_seconds || 0;
+      var hitCap  = meta.hit_cap || false;
+      var timeStr = formatElapsedDisplay(elapsed);
+      var msgId   = messageId || meta.message_id || ('msg_' + Math.random().toString(36).slice(2));
+
+      var title = 'Research complete' + (timeStr ? ' in ' + timeStr : '');
       if (hitCap) {
-        summaryMsg = 'searched ' + searchCount + '× within limit — partial answer';
-      } else if (sources.length === 0) {
-        summaryMsg = 'answered in ' + elapsed + 's from prior knowledge';
-      } else {
-        summaryMsg = 'reviewed ' + sources.length + ' source' + (sources.length !== 1 ? 's' : '') + ' in ' + elapsed + 's';
+        title = 'Research stopped (step limit reached)' + (timeStr ? ' in ' + timeStr : '');
       }
+
+      return (
+        '<div class="trail-accordion-bar" onclick="toggleExchangeTrail(this)" id="trail-bar-' + msgId + '" role="button" aria-expanded="false">' +
+          '<div class="trail-accordion-left">' +
+            '<div class="trail-status-icon' + (hitCap ? ' warn' : '') + '">' +
+              (hitCap ?
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" stroke="#ef4444" fill="rgba(239, 68, 68, 0.08)"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' :
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" stroke="#10b981" fill="rgba(16, 185, 129, 0.08)"/><path d="M8.5 12.5l2.5 2.5 5-5" stroke="#10b981"/></svg>'
+              ) +
+            '</div>' +
+            '<span class="trail-status-text">' + escapeHtml(title) + '</span>' +
+          '</div>' +
+          '<div class="trail-accordion-right">' +
+            '<svg class="trail-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+              '<polyline points="6 9 12 15 18 9"></polyline>' +
+            '</svg>' +
+          '</div>' +
+        '</div>'
+      );
+    }
+
+    function toggleExchangeTrail(barEl) {
+      var exchange = barEl.closest('.thread-exchange');
+      if (!exchange) return;
+      var tl = exchange.querySelector('.exchange-timeline');
+      if (!tl) return;
+      var isHidden = (tl.style.display === 'none' || !tl.style.display);
+      if (isHidden) {
+        tl.style.display = 'flex';
+        barEl.classList.add('open');
+        barEl.setAttribute('aria-expanded', 'true');
+      } else {
+        tl.style.display = 'none';
+        barEl.classList.remove('open');
+        barEl.setAttribute('aria-expanded', 'false');
+      }
+    }
+    var toggleExchangeTimeline = toggleExchangeTrail;
+
+    function buildAnswerCardHTML(text, meta, messageId, initialFeedback, initialFeedbackNote) {
+      var sources = meta.sources || [];
+      var msgId   = messageId || meta.message_id || ('msg_' + Math.random().toString(36).slice(2));
 
       var isUp   = initialFeedback === 'up';
       var isDown = initialFeedback === 'down';
 
       var html =
-        '<div class="completion-bar" onclick="toggleExchangeTimeline(this)" id="completion-summary-' + msgId + '">' +
-          '<span class="completion-bar-icon' + (hitCap ? ' warn' : '') + '">' +
-            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
-              (hitCap ? '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>' : '<polyline points="20 6 9 17 4 12"/>') +
-            '</svg>' +
-          '</span>' +
-          '<span class="completion-bar-msg">' + escapeHtml(summaryMsg) + '</span>' +
-          '<div class="completion-bar-stats">' +
-            '<span class="stat-tag">' + searchCount + ' searches</span>' +
-            '<span class="stat-tag">' + elapsed + 's</span>' +
-          '</div>' +
-        '</div>' +
-        '<div class="completion-hint">&#x25BE; click to toggle research trail</div>' +
         '<div class="answer-card" id="answer-card-' + msgId + '">' +
           '<div class="answer-card-header">' +
             '<span class="answer-card-header-icon">' +
               '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
             '</span>' +
             '<span class="answer-card-header-label">Answer</span>' +
-            '<div class="answer-card-meta">' +
-              '<span class="level-badge">' + escapeHtml(lvl) + '</span>' +
-            '</div>' +
           '</div>' +
           '<div class="answer-body">' + formatAnswer(text) + '</div>' +
           (sources.length > 0 ? renderSources(sources) : '') +
@@ -2479,15 +2547,6 @@
       return html;
     }
 
-    function toggleExchangeTimeline(compBarEl) {
-      var exchange = compBarEl.closest('.thread-exchange');
-      if (!exchange) return;
-      var tl = exchange.querySelector('.exchange-timeline') || exchange.querySelector('#timeline');
-      if (tl) {
-        tl.style.display = tl.style.display === 'none' ? 'flex' : 'none';
-      }
-    }
-
     function commitActiveExchange(text, meta, messageId) {
       if (activeNodeEl) {
         var dot = activeNodeEl.querySelector('.node-dot');
@@ -2512,6 +2571,8 @@
           '<div class="exchange-q-text">' + escapeHtml(activeExchangeQ) + '</div>' +
         '</div>';
 
+      var accordionBarHTML = buildTrailAccordionHTML(meta, messageId);
+
       // Clone current timeline contents
       var clonedTimeline = document.createElement('div');
       clonedTimeline.className = 'exchange-timeline';
@@ -2528,10 +2589,10 @@
       });
 
       var answerCardHTML = buildAnswerCardHTML(
-        text, meta, messageId, meta.level || currentResearchLevel, meta.model_used || 'openrouter'
+        text, meta, messageId, meta.feedback, meta.feedback_note
       );
 
-      exchangeDiv.innerHTML = qHeader;
+      exchangeDiv.innerHTML = qHeader + accordionBarHTML;
       exchangeDiv.appendChild(clonedTimeline);
       
       var answerSecDiv = document.createElement('div');
@@ -2608,6 +2669,37 @@
         return '<ol>' + match.replace(/ class="wf-li-ol"/g, '') + '</ol>';
       });
 
+      // Markdown Tables
+      var tableBlocks = [];
+      html = html.replace(/((?:\|[^\n]+\|\r?\n)+\|[^\n]+\|)/g, function(match) {
+        var rows = match.trim().split(/\r?\n/).map(function(r) { return r.trim(); }).filter(Boolean);
+        if (rows.length >= 2) {
+          var headerCols = rows[0].split('|').slice(1, -1).map(function(c) { return c.trim(); });
+          var separatorRow = rows[1];
+          if (/^\|(?:\s*:?-+:?\s*\|)+$/.test(separatorRow)) {
+            var bodyRows = rows.slice(2);
+            var tableHtml = '<div class="table-container"><table class="wf-table"><thead><tr>';
+            headerCols.forEach(function(h) {
+              tableHtml += '<th>' + h + '</th>';
+            });
+            tableHtml += '</tr></thead><tbody>';
+            bodyRows.forEach(function(brow) {
+              var cols = brow.split('|').slice(1, -1).map(function(c) { return c.trim(); });
+              tableHtml += '<tr>';
+              cols.forEach(function(c) {
+                tableHtml += '<td>' + c + '</td>';
+              });
+              tableHtml += '</tr>';
+            });
+            tableHtml += '</tbody></table></div>';
+            var placeholder = '@@TABLEBLOCK_' + tableBlocks.length + '@@';
+            tableBlocks.push(tableHtml);
+            return placeholder;
+          }
+        }
+        return match;
+      });
+
       // Split paragraphs
       html = html.split(/\n\s*\n/)
         .map(function(p) { return p.trim(); })
@@ -2615,12 +2707,17 @@
         .map(function(p) {
           if (p.startsWith('<h2>') || p.startsWith('<h3>') || p.startsWith('<h4>') ||
               p.startsWith('<ul>') || p.startsWith('<ol>') || p.startsWith('<blockquote>') ||
-              p.startsWith('<pre>') || p.startsWith('@@CODEBLOCK_')) {
+              p.startsWith('<pre>') || p.startsWith('@@CODEBLOCK_') || p.startsWith('@@TABLEBLOCK_')) {
             return p;
           }
           return '<p>' + p.replace(/\n/g, '<br/>') + '</p>';
         })
         .join('\n');
+
+      // Restore table blocks
+      tableBlocks.forEach(function(tb, i) {
+        html = html.replace(new RegExp('@@TABLEBLOCK_' + i + '@@', 'g'), tb);
+      });
 
       // Restore code blocks
       codeBlocks.forEach(function(cb, i) {
@@ -3239,17 +3336,16 @@
         };
 
         var answerText = msg.answer || msg.final_answer || 'No synthesized answer recorded.';
+        var accordionBarHTML = buildTrailAccordionHTML(meta, msg.id);
         var answerCardHTML = buildAnswerCardHTML(
           answerText,
           meta,
           msg.id,
-          msg.level || 'standard',
-          msg.model_used || 'openrouter',
           msg.feedback,
           msg.feedback_note
         );
 
-        msgExchangeDiv.innerHTML = qHeader;
+        msgExchangeDiv.innerHTML = qHeader + accordionBarHTML;
         msgExchangeDiv.appendChild(histTimelineDiv);
 
         var aDiv = document.createElement('div');
@@ -3399,7 +3495,8 @@
     window.scrollToBottom = scrollToBottom;
     window.fillQuestion = fillQuestion;
     window.toggleNode = toggleNode;
-    window.toggleExchangeTimeline = toggleExchangeTimeline;
+    window.toggleExchangeTrail = toggleExchangeTrail;
+    window.toggleExchangeTimeline = toggleExchangeTrail;
     window.sendFeedback = sendFeedback;
     window.submitFeedbackNote = submitFeedbackNote;
     window.displayHistoricalThread = displayHistoricalThread;
