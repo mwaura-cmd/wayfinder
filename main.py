@@ -28,6 +28,23 @@ from providers.groq import GroqProvider
 from tools.tavily import TavilySearchExecutor
 from llm_provider import get_llm_client_and_model
 
+# Optional: Gemini provider (only registered when key is configured)
+try:
+    if config.GEMINI_API_KEY:
+        from providers.gemini import GeminiProvider
+        _GEMINI_AVAILABLE = True
+    else:
+        _GEMINI_AVAILABLE = False
+except Exception:
+    _GEMINI_AVAILABLE = False
+
+# Optional: Firestore server timestamp (graceful import)
+try:
+    from google.cloud import firestore as _firestore
+    _FIRESTORE_TIMESTAMP = _firestore.SERVER_TIMESTAMP
+except Exception:
+    _FIRESTORE_TIMESTAMP = None
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 log = logging.getLogger(__name__)
 
@@ -49,6 +66,9 @@ app.mount("/assets", StaticFiles(directory=Path(__file__).parent / "frontend" / 
 # ── Register Components ────────────────────────────────────────────────────────
 ProviderRegistry.register("openrouter", OpenRouterProvider())
 ProviderRegistry.register("groq", GroqProvider())
+if _GEMINI_AVAILABLE:
+    ProviderRegistry.register("gemini", GeminiProvider())
+    log.info("Gemini provider registered (GEMINI_API_KEY is set).")
 
 ToolRegistry.register(ToolDefinition(
     name="web_search",
@@ -160,6 +180,7 @@ class ResearchRequest(BaseModel):
     question: str
     thread_id: Optional[int] = None
     level: Optional[str] = "standard"
+    provider: Optional[str] = None  # override LLM provider per-request
     attachments: Optional[List[FileAttachment]] = None
 
 class FeedbackRequest(BaseModel):
@@ -194,6 +215,15 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
             # Pass up to the last 6 messages to keep prompt focused
             prior_messages = all_msgs[-6:] if len(all_msgs) > 6 else all_msgs
 
+    # Resolve provider: use request override if valid, else fall back to config default
+    requested_provider = req.provider if req.provider else config.LLM_PROVIDER
+    try:
+        ProviderRegistry.get(requested_provider)
+        active_provider = requested_provider
+    except ValueError:
+        log.warning(f"Unknown provider '{requested_provider}' requested — falling back to '{config.LLM_PROVIDER}'.")
+        active_provider = config.LLM_PROVIDER
+
     # Tool categories: only include memory search for initial topic queries, not follow-ups
     tool_cats = ["search"]
 
@@ -220,7 +250,7 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
         try:
             result = await run_sequential_agent(
                 prompt=full_prompt,
-                provider_id=config.LLM_PROVIDER,
+                provider_id=active_provider,
                 tool_categories=tool_cats,
                 skill_domain="",
                 role_prompt=(
@@ -283,7 +313,7 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
                         elif isinstance(s, str):
                             formatted_sources.append({"url": s, "title": s})
 
-                    db.collection("sessions").document(task_id).set({
+                    doc_data = {
                         "task_id": task_id,
                         "thread_id": active_thread_id,
                         "message_id": saved_msg_id,
@@ -297,23 +327,13 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
                         "search_count": result.search_count,
                         "elapsed_seconds": result.elapsed_seconds,
                         "events": serialized_events,
-                        "created_at": firestore.SERVER_TIMESTAMP,
                         "uid": uid,
-                    })
+                    }
+                    # Use SERVER_TIMESTAMP only when the firestore module imported correctly
+                    if _FIRESTORE_TIMESTAMP is not None:
+                        doc_data["created_at"] = _FIRESTORE_TIMESTAMP
+                    db.collection("sessions").document(task_id).set(doc_data)
                     log.info(f"Task {task_id} saved to Firestore sessions collection for user {uid}.")
-
-                    # Also save to semantic memory for future retrieval
-                    semantic_store = FirebaseSemanticMemoryStore()
-                    await semantic_store.store(
-                        key=task_id,
-                        content=result.final_output,
-                        metadata={
-                            "question": question,
-                            "task_id": task_id,
-                            "thread_id": active_thread_id,
-                            "uid": uid
-                        }
-                    )
                 except Exception as db_err:
                     log.error(f"Failed to save session {task_id} to Firestore: {db_err}")
 
@@ -336,7 +356,8 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
     return {
         "task_id": task_id,
         "thread_id": active_thread_id,
-        "level": req_level
+        "level": req_level,
+        "provider": active_provider,
     }
 
 @app.get("/stream/{task_id}")
@@ -345,6 +366,20 @@ async def stream_events(task_id: str, request: Request):
         telemetry_hub.get_stream(task_id),
         media_type="text/event-stream"
     )
+
+@app.get("/providers")
+async def list_providers():
+    """Return all registered LLM providers and the current default."""
+    registered = ProviderRegistry.list()
+    return {
+        "providers": registered,
+        "default": config.LLM_PROVIDER,
+        "available": {
+            "openrouter": bool(config.OPENROUTER_API_KEY),
+            "groq": bool(config.GROQ_API_KEY),
+            "gemini": _GEMINI_AVAILABLE,
+        }
+    }
 
 @app.get("/history")
 async def get_history(limit: int = 30, uid: str = Depends(get_current_user)):

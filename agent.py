@@ -1,13 +1,23 @@
 """
-agent.py — Agent runner interface wrapping provider selection and agent execution loop.
+agent.py — Thin convenience wrapper around run_sequential_agent.
+
+NOTE: The real agent execution path is:
+  main.py::start_research() → orchestration/topologies.py::run_sequential_agent()
+  → execution/engine.py::LoopEngine.run()
+
+This module provides a standalone run_agent() helper that can be used
+for testing or scripting without the full FastAPI stack.
 """
 
 import logging
-from typing import AsyncIterator, Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional
 
 import config
-from llm_provider import get_llm_client_and_model, get_async_llm_client_and_model
+from llm_provider import get_llm_client_and_model
 from core.provider import ProviderRegistry
+from orchestration.topologies import run_sequential_agent
+from observability.telemetry import TelemetryHub
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -17,37 +27,61 @@ async def run_agent(
     provider_name: Optional[str] = None,
     level: str = "standard",
     prior_messages: Optional[List[Dict[str, Any]]] = None,
-) -> AsyncIterator[Dict[str, Any]]:
+) -> Dict[str, Any]:
     """
-    Runs the agent loop for the requested provider (defaulting to config.LLM_PROVIDER).
-    Validates provider credentials at the top before starting the loop and yields a clean
-    error event on missing configuration or invalid provider names.
+    Standalone agent runner — validates provider, runs the sequential agent loop,
+    and returns the final AgentRunResult as a dict.
+
+    Use this for CLI scripts or tests. In production, main.py calls
+    run_sequential_agent() directly for full SSE streaming support.
     """
     target_provider = provider_name or config.LLM_PROVIDER
 
-    # 1. Validate provider selection and API key configuration upfront
+    # Validate provider credentials upfront
     try:
-        client, model = get_llm_client_and_model(target_provider)
+        get_llm_client_and_model(target_provider)
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Provider configuration error for '{target_provider}': {error_msg}")
-        yield {"type": "error", "text": error_msg}
-        return
+        return {"type": "error", "text": error_msg}
 
-    # 2. Get provider instance from registry
+    # Validate provider is registered
     try:
-        provider_inst = ProviderRegistry.get(target_provider)
+        ProviderRegistry.get(target_provider)
     except ValueError:
-        yield {
+        return {
             "type": "error",
-            "text": f"Unknown LLM_PROVIDER value '{target_provider}' — expected 'groq' or 'openrouter'.",
+            "text": f"Unknown provider '{target_provider}' — expected one of: openrouter, groq, gemini.",
         }
-        return
 
-    # Yield initialization status event
-    yield {
-        "type": "status",
-        "text": f"Initialized agent using {target_provider} ({model})",
-        "model": model,
-        "provider": target_provider,
+    telemetry = TelemetryHub()
+    track_id = str(uuid.uuid4())
+
+    logger.info(f"Running agent with provider={target_provider}, level={level}, track_id={track_id}")
+
+    result = await run_sequential_agent(
+        prompt=prompt,
+        provider_id=target_provider,
+        tool_categories=["search"],
+        skill_domain="",
+        role_prompt=(
+            "You are Wayfinder, an elite web research engine. "
+            "Research the user's question thoroughly using web search, "
+            "then synthesize a comprehensive, expert-level final answer."
+        ),
+        telemetry=telemetry,
+        track_id=track_id,
+        level=level,
+        prior_messages=prior_messages or [],
+    )
+
+    return {
+        "type": "complete",
+        "final_output": result.final_output,
+        "sources": result.sources,
+        "model_used": result.model_used,
+        "steps_taken": result.steps_taken,
+        "search_count": result.search_count,
+        "elapsed_seconds": result.elapsed_seconds,
+        "success": result.success,
     }

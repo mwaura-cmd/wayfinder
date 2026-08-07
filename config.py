@@ -44,6 +44,9 @@ OPENROUTER_MODEL: str = os.environ.get(
     "openrouter/free",          # Auto-routes to available free models
 )
 
+GEMINI_API_KEY: str = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_MODEL: str = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+
 # ── Search ────────────────────────────────────────────────────────────────────
 TAVILY_API_KEY: str = os.environ.get("TAVILY_API_KEY", "")
 TAVILY_MAX_RESULTS: int = 5

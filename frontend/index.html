@@ -931,6 +931,44 @@
     .status-diamond.working { background: var(--wf-accent); }
     .status-diamond.error { background: var(--wf-error); }
 
+    /* ── Provider / Model Selector ─────────────────────────────── */
+    .provider-selector {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .provider-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--wf-text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+    .provider-select {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: var(--wf-text-dim);
+      background: var(--wf-surface-sub);
+      border: 1px solid var(--wf-border);
+      border-radius: var(--radius-sm);
+      padding: 3px 8px;
+      cursor: pointer;
+      appearance: none;
+      outline: none;
+      transition: border-color 0.15s, color 0.15s;
+      min-width: 100px;
+    }
+    .provider-select:hover, .provider-select:focus {
+      border-color: var(--wf-accent);
+      color: var(--wf-text);
+    }
+    .provider-select option {
+      background: var(--wf-surface);
+      color: var(--wf-text);
+    }
+
     #scroll-btn {
       position: fixed;
       bottom: 46px; right: 18px;
@@ -2142,6 +2180,12 @@
               <div class="level-selector" id="hero-level-selector" style="margin-top: 12px;">
                 <button type="button" class="level-btn active" data-level="standard" onclick="setResearchLevel('standard')">Standard (Fast)</button>
                 <button type="button" class="level-btn" data-level="extended" onclick="setResearchLevel('extended')">Extended (Deep)</button>
+                <div class="provider-selector" style="margin-left: 12px;">
+                  <span class="provider-label">Model</span>
+                  <select class="provider-select" id="hero-provider-select" onchange="setProvider(this.value)">
+                    <option value="openrouter">OpenRouter</option>
+                  </select>
+                </div>
               </div>
               <div id="hero-attached-files" class="attached-files-container"></div>
             </div>
@@ -2202,6 +2246,12 @@
           <div class="level-selector" id="topbar-level-selector">
             <button type="button" class="level-btn active" data-level="standard" onclick="setResearchLevel('standard')">Standard</button>
             <button type="button" class="level-btn" data-level="extended" onclick="setResearchLevel('extended')">Extended</button>
+            <div class="provider-selector" style="margin-left: 8px;">
+              <span class="provider-label">Model</span>
+              <select class="provider-select" id="topbar-provider-select" onchange="setProvider(this.value)">
+                <option value="openrouter">OpenRouter</option>
+              </select>
+            </div>
           </div>
           <button type="button" id="submit-btn">Research</button>
         </div>
@@ -2222,6 +2272,7 @@
     var allEvents             = [];
     var timelineVisible       = true;
     var currentResearchLevel  = 'standard';
+    var currentProvider       = 'openrouter';
     var currentThreadId       = null;
     var activeExchangeQ       = '';
 
@@ -2263,6 +2314,44 @@
           btn.classList.remove('active');
         }
       });
+    }
+
+    function setProvider(p) {
+      currentProvider = p || 'openrouter';
+      // Sync both selectors
+      ['hero-provider-select', 'topbar-provider-select'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.value = currentProvider;
+      });
+    }
+
+    async function loadProviders() {
+      try {
+        var res = await fetch('/providers');
+        if (!res.ok) return;
+        var data = await res.json();
+        var providers = data.providers || [];
+        var defaultP  = data.default || 'openrouter';
+        var available  = data.available || {};
+
+        // Build option labels
+        var labelMap = { openrouter: 'OpenRouter', groq: 'Groq', gemini: 'Gemini' };
+
+        ['hero-provider-select', 'topbar-provider-select'].forEach(function(id) {
+          var el = document.getElementById(id);
+          if (!el) return;
+          el.innerHTML = providers.map(function(p) {
+            var label = labelMap[p] || p;
+            var keyOk = available[p] !== false;
+            return '<option value="' + p + '"' + (!keyOk ? ' disabled' : '') + '>' +
+                   label + (!keyOk ? ' (no key)' : '') + '</option>';
+          }).join('');
+          el.value = defaultP;
+        });
+        setProvider(defaultP);
+      } catch(e) {
+        console.warn('Could not load providers:', e);
+      }
     }
 
     function goHome() {
@@ -2706,14 +2795,22 @@
     }
 
     function renderSources(sources) {
-      var chips = sources.slice(0, 12).map(function(url) {
+      if (!sources || !sources.length) return '';
+      var chips = sources.slice(0, 12).map(function(src) {
+        // Handle both plain URL strings and {url, title} objects
+        var url    = (typeof src === 'string') ? src : (src.url || '');
+        var title  = (typeof src === 'object' && src.title) ? src.title : url;
+        if (!url) return '';
         var domain = (function() { try { return new URL(url).hostname; } catch(e) { return url; } })();
+        var displayText = (title && title !== url) ? title : domain;
+        if (displayText.length > 40) displayText = displayText.slice(0, 40) + '…';
         var faviconUrl = 'https://www.google.com/s2/favicons?domain=' + domain + '&sz=32';
         return '<a class="source-chip" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' +
           '<img class="source-chip-favicon" src="' + faviconUrl + '" onerror="this.style.display=\'none\'" loading="lazy" />' +
-          '<span class="source-chip-url">' + escapeHtml(domain) + '</span>' +
+          '<span class="source-chip-url">' + escapeHtml(displayText) + '</span>' +
           '</a>';
-      }).join('');
+      }).filter(Boolean).join('');
+      if (!chips) return '';
       return '<div class="sources-section"><div class="sources-label">Sources</div><div class="sources-grid">' + chips + '</div></div>';
     }
 
@@ -3050,6 +3147,7 @@
             question: question,
             thread_id: currentThreadId,
             level: currentResearchLevel,
+            provider: currentProvider,
             attachments: attachedFiles.map(f => ({ name: f.name, type: f.type, data: f.data }))
           }),
         });
@@ -3469,6 +3567,7 @@
 
     // Expose workspace functions to window for inline onclick handlers
     window.setResearchLevel = setResearchLevel;
+    window.setProvider = setProvider;
     window.goHome = goHome;
     window.scrollToBottom = scrollToBottom;
     window.fillQuestion = fillQuestion;
@@ -3485,6 +3584,9 @@
     window.handleFileSelect = handleFileSelect;
     window.removeAttachedFile = removeAttachedFile;
     window.startResearch = startResearch;
+
+    // Load available providers from backend immediately (no auth required)
+    loadProviders();
 
   </script>
 
