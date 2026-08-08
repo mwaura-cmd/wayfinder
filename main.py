@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 import uuid
 import json
 import base64
@@ -227,62 +228,129 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
     # Tool categories: only include memory search for initial topic queries, not follow-ups
     tool_cats = ["search"]
 
+    # ── Conversational Intent Detection ─────────────────────────────────
+    # Short-circuit greetings, thanks, and casual chat — respond instantly
+    # without burning a web search or running the full agent loop.
+    _GREETING_PATTERNS = re.compile(
+        r"^(hey|hello|hi|howdy|yo|sup|what'?s up|good (morning|afternoon|evening|day|night)|greetings|hiya|heya"
+        r"|thanks|thank you|thx|ty|cheers|cool|great|awesome|nice|ok|okay|alright|sure|got it|sounds good"
+        r"|who are you|what are you|what can you do|help me|how does this work|what is wayfinder"
+        r"|test|testing|ping|hello there|hi there)[!?.]*$",
+        re.IGNORECASE
+    )
+
+    _CONVERSATIONAL_REPLIES = {
+        "greeting": "Hey! I'm Wayfinder — your web research agent. What would you like me to research today?",
+        "thanks":   "You're welcome! Let me know if there's anything else you'd like me to research.",
+        "whoami":   "I'm Wayfinder, an AI-powered web research agent. I search the live web, trace my sources, and build on what I've found in past sessions. Ask me anything — from quick facts to deep multi-source investigations.",
+        "help":     "Ask me any research question and I'll search the live web, cross-verify sources, and synthesise a grounded answer. Try something like: *\"What are the latest developments in quantum computing?\"* or *\"Compare Python 3.12 vs 3.13 performance.\"*",
+    }
+
+    def _classify_conversational(q: str):
+        """Returns a reply string if q is casual chat, else None."""
+        q_stripped = q.strip().rstrip('!?.').lower()
+        if not _GREETING_PATTERNS.match(q.strip()):
+            return None
+        if any(w in q_stripped for w in ["thank", "thx", "ty", "cheers"]):
+            return _CONVERSATIONAL_REPLIES["thanks"]
+        if any(w in q_stripped for w in ["who are you", "what are you", "what is wayfinder"]):
+            return _CONVERSATIONAL_REPLIES["whoami"]
+        if any(w in q_stripped for w in ["help", "how does", "what can"]):
+            return _CONVERSATIONAL_REPLIES["help"]
+        return _CONVERSATIONAL_REPLIES["greeting"]
+
+    conversational_reply = _classify_conversational(question) if not req.attachments else None
+
     async def bg_task():
         try:
-            # Validate provider configuration upfront (yields clean error if key missing or invalid provider)
-            get_llm_client_and_model(config.LLM_PROVIDER)
-        except Exception as e:
-            err_msg = str(e)
-            log.error(f"Task {task_id} configuration error: {err_msg}")
-            await telemetry_hub.emit(TelemetryEvent(
-                event_id=str(uuid.uuid4()),
-                timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                track_id=task_id,
-                parent_track_id=None,
-                source_type="agent",
-                payload=Payload(
-                    type="error",
-                    text=err_msg
-                )
-            ))
-            return
+            # ── Fast path: conversational / greeting ──────────────────────────
+            if conversational_reply:
+                now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+                await telemetry_hub.emit(TelemetryEvent(
+                    event_id=str(uuid.uuid4()), timestamp=now,
+                    track_id=task_id, parent_track_id=None,
+                    track_type="root", source_type="agent",
+                    payload=Payload(type="narrative_start", narrative="Got it — responding directly.")
+                ))
+                await telemetry_hub.emit(TelemetryEvent(
+                    event_id=str(uuid.uuid4()), timestamp=now,
+                    track_id=task_id, parent_track_id=None,
+                    track_type="root", source_type="agent",
+                    payload=Payload(
+                        type="run_complete",
+                        final_output=conversational_reply,
+                        label="search_count=0|elapsed=0.1|sources=|model_used=direct|level=standard",
+                        summary="Direct conversational reply."
+                    )
+                ))
+                db_conn2 = memory.init_db()
+                if db_conn2:
+                    memory.save_message(
+                        conn=db_conn2, thread_id=active_thread_id,
+                        question=question, answer=conversational_reply,
+                        sources=[], model_used="direct", level="standard",
+                    )
+                return
 
-        try:
+            # ── Validate provider upfront ─────────────────────────────────────
+            try:
+                get_llm_client_and_model(config.LLM_PROVIDER)
+            except Exception as e:
+                err_msg = str(e)
+                log.error(f"Task {task_id} configuration error: {err_msg}")
+                await telemetry_hub.emit(TelemetryEvent(
+                    event_id=str(uuid.uuid4()),
+                    timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                    track_id=task_id, parent_track_id=None,
+                    track_type="root", source_type="agent",
+                    payload=Payload(
+                        type="error_event",
+                        error={"message": err_msg, "code": "config_error", "recoverable": False}
+                    )
+                ))
+                return
+
+            # ── Run the agent loop ────────────────────────────────────────────
             result = await run_sequential_agent(
                 prompt=full_prompt,
                 provider_id=active_provider,
                 tool_categories=tool_cats,
                 skill_domain="",
                 role_prompt=(
-                    "You are Wayfinder, an elite, deep web research engine.\n"
-                    "Your mission is to rigorously research the user's question, gather corroborated evidence across high-quality sources, and synthesize an insightful, comprehensive, expert-level response.\n\n"
-                    "Research Guidelines:\n"
-                    "- Always search the web for up-to-date and accurate information before answering.\n"
+                    "You are Wayfinder, a precise and conversational web research agent.\n\n"
+                    "CONVERSATIONAL INPUT RULE (highest priority):\n"
+                    "- If the user's message is a greeting (Hey, Hello, Hi, etc.), casual acknowledgement "
+                    "(Thanks, Cool, OK, Got it), or a very short non-question (fewer than 4 words with no "
+                    "researchable topic), respond naturally in 1–2 sentences WITHOUT searching the web. "
+                    "Use FORMAT B directly with a brief, friendly reply.\n\n"
+                    "RESEARCH RULE (for all genuine research queries):\n"
+                    "- Search the web for up-to-date and accurate information before answering.\n"
                     "- If documents are attached, thoroughly incorporate their context.\n"
                     "- Cross-verify facts and key claims across multiple reputable sources.\n"
-                    "- When you have gathered sufficient evidence, output your Final Answer directly without narrating intent beforehand.\n\n"
-                    "Synthesis & Final Answer Formatting Rules:\n"
-                    "1. OPENING EXECUTIVE SYNTHESIS: Always open your final answer directly with an engaging, high-level executive summary paragraph (1–3 sentences) that answers the core question, frames the macro context, or highlights the defining shift/takeaway (e.g. \"2025 was the year fusion moved from 'is it possible?' to 'how fast can we build it?' — the sector's defining shift was from research physics to industrial deployment. Here's what mattered most.\"). Do NOT include label headers like 'Executive Summary:' or 'Opening Synthesis:' — begin directly with the introductory text itself. NEVER jump directly into numbered lists, raw bullet points, or dry breakdowns without this opening lead paragraph.\n"
-                    "2. STRUCTURED THEMATIC DEEP-DIVE: Follow the executive lead with structured thematic sections using markdown headers (###), bolded concept titles (e.g. 1. **Sector Milestones & Deployment Race**: ...), concrete data points, metrics, dates, and key organization/project names.\n"
-                    "3. COMPARISONS & TABLES: Use clean markdown tables where comparisons or chronological data make findings easier to digest.\n"
-                    "4. TONE & WRITING STYLE: Write with the depth, clarity, and authority of a top-tier analyst report. Avoid robotic meta-statements like 'Based on my search results' or 'Here is what I found'."
+                    "- When you have gathered sufficient evidence, output your Final Answer directly.\n\n"
+                    "Synthesis & Final Answer Formatting Rules (for research queries):\n"
+                    "1. OPENING EXECUTIVE SYNTHESIS: Open with an engaging executive summary paragraph "
+                    "(1–3 sentences). Do NOT add headers like 'Executive Summary:' — begin directly.\n"
+                    "2. STRUCTURED THEMATIC DEEP-DIVE: Follow with markdown headers (###), bolded concept "
+                    "titles, concrete data points, metrics, dates, and key names.\n"
+                    "3. COMPARISONS & TABLES: Use clean markdown tables where comparisons help.\n"
+                    "4. TONE: Write with the depth and authority of a top-tier analyst. Avoid "
+                    "meta-statements like 'Based on my search results'."
                 ),
                 telemetry=telemetry_hub,
-                track_id=task_id,   # ← same ID the frontend subscribes to
+                track_id=task_id,
                 level=req_level,
                 prior_messages=prior_messages,
             )
-            log.info(f"Task {task_id} completed. Success: {result.success}, Model: {result.model_used}, Level: {result.level}")
+            log.info(f"Task {task_id} completed. Success: {result.success}, Model: {result.model_used}")
 
-            # Safety check: ensure answer text is never empty or placeholder
             persisted_answer = (result.final_output or "").strip()
             if not persisted_answer:
-                log.warning(f"Task {task_id}: result.final_output is empty; falling back to episodic summary.")
                 persisted_answer = (result.episodic_summary or "").strip()
             if not persisted_answer:
                 persisted_answer = f"Research concluded for '{question}'."
 
-            # 1. Save to SQLite memory store (threads & messages) scoped to user UID
+            # Save to SQLite
             db_conn = memory.init_db()
             saved_msg_id = 0
             if db_conn:
@@ -298,21 +366,18 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
                 )
                 log.info(f"Saved message {saved_msg_id} to thread {active_thread_id} for user {uid}")
 
-            # 2. Save session to Firestore with full telemetry events, sources, and metrics
+            # Save to Firestore
             db = get_db()
             if db:
                 try:
                     trace = telemetry_hub.get_trace(task_id)
                     serialized_events = [ev.model_dump() for ev in trace] if trace else []
-
-                    # Normalize sources
                     formatted_sources = []
                     for s in (result.sources or []):
                         if isinstance(s, dict):
                             formatted_sources.append(s)
                         elif isinstance(s, str):
                             formatted_sources.append({"url": s, "title": s})
-
                     doc_data = {
                         "task_id": task_id,
                         "thread_id": active_thread_id,
@@ -329,11 +394,10 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
                         "events": serialized_events,
                         "uid": uid,
                     }
-                    # Use SERVER_TIMESTAMP only when the firestore module imported correctly
                     if _FIRESTORE_TIMESTAMP is not None:
                         doc_data["created_at"] = _FIRESTORE_TIMESTAMP
                     db.collection("sessions").document(task_id).set(doc_data)
-                    log.info(f"Task {task_id} saved to Firestore sessions collection for user {uid}.")
+                    log.info(f"Task {task_id} saved to Firestore for user {uid}.")
                 except Exception as db_err:
                     log.error(f"Failed to save session {task_id} to Firestore: {db_err}")
 
@@ -342,10 +406,8 @@ async def start_research(req: ResearchRequest, uid: str = Depends(get_current_us
             asyncio.create_task(telemetry_hub.emit(TelemetryEvent(
                 event_id=str(uuid.uuid4()),
                 timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                track_id=task_id,
-                parent_track_id=None,
-                track_type="root",
-                source_type="system",
+                track_id=task_id, parent_track_id=None,
+                track_type="root", source_type="system",
                 payload=Payload(
                     type="error_event",
                     error={"message": f"Execution failed: {str(e)}", "code": "system_error", "recoverable": False}
