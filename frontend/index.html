@@ -9,6 +9,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet" />
 
+  <!-- Anti-FOWT: apply theme class before first paint to avoid flicker -->
+  <script>
+    (function() {
+      var saved = localStorage.getItem('wf-theme');
+      var sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var isLight = saved ? (saved === 'light') : !sysDark;
+      if (isLight) document.documentElement.classList.add('light');
+    })();
+  </script>
+
   <style>
     /* ── Design Tokens ─────────────────────────────────────────── */
     :root {
@@ -17,6 +27,7 @@
       --wf-surface-sub:#1a253c;   /* subtle elevated surface */
       --wf-surface-hi: #202d48;   /* hover / active surface */
       --wf-border:     #2a3552;   /* hairline borders/dividers */
+      --wf-border-focus:#3d5080;
       --wf-accent:     #c9974d;   /* brass/amber — the ONE signature accent color */
       --wf-error:      #e2725b;   /* signal red — errors ONLY, never decorative */
       --wf-success:    #6b9080;   /* verdigris green — completed/success states */
@@ -32,7 +43,69 @@
       --radius:        8px;
       --radius-lg:     12px;
       --ease:          cubic-bezier(0.16, 1, 0.3, 1);
+
+      /* Theme transition */
+      --theme-transition: background 0.22s ease, color 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
     }
+
+    /* ── Light Mode Overrides ─────────────────────────────── */
+    html.light {
+      --wf-bg:         #f4f1eb;
+      --wf-surface:    #ffffff;
+      --wf-surface-sub:#f0ece4;
+      --wf-surface-hi: #e8e3d8;
+      --wf-border:     #d5cfc3;
+      --wf-border-focus:#b8a98c;
+      --wf-accent:     #a0692a;
+      --wf-error:      #c0392b;
+      --wf-success:    #3d6e5a;
+      --wf-text:       #1a1710;
+      --wf-text-dim:   #5c5648;
+      --wf-text-faint: #9a9181;
+    }
+
+    /* Smooth theme transitions on all key elements */
+    body, .left-panel, .main-area, .top-bar, .main-top-nav,
+    .narrative-node, .work-panel, .answer-card, .source-chip,
+    .trail-accordion-bar, .history-item, .hero-preloader,
+    .level-btn, .provider-select, .auth-modal-box,
+    .hero-search-box, textarea, input {
+      transition: var(--theme-transition) !important;
+    }
+
+    /* ── Theme Toggle Button ───────────────────────────── */
+    .theme-toggle-btn {
+      background: transparent;
+      border: 1px solid var(--wf-border);
+      border-radius: var(--radius-sm);
+      color: var(--wf-text-dim);
+      cursor: pointer;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: border-color 0.15s, color 0.15s, background 0.15s, transform 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .theme-toggle-btn:hover {
+      border-color: var(--wf-accent);
+      color: var(--wf-accent);
+      background: var(--wf-surface-hi);
+    }
+    .theme-toggle-btn .icon-sun,
+    .theme-toggle-btn .icon-moon {
+      position: absolute;
+      transition: opacity 0.2s ease, transform 0.25s ease;
+    }
+    /* Dark mode: show moon, hide sun */
+    html:not(.light) .theme-toggle-btn .icon-sun  { opacity: 0; transform: rotate(-40deg) scale(0.6); }
+    html:not(.light) .theme-toggle-btn .icon-moon { opacity: 1; transform: rotate(0deg) scale(1); }
+    /* Light mode: show sun, hide moon */
+    html.light .theme-toggle-btn .icon-sun  { opacity: 1; transform: rotate(0deg) scale(1); }
+    html.light .theme-toggle-btn .icon-moon { opacity: 0; transform: rotate(40deg) scale(0.6); }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     button svg, .input-action-btn svg, .sidebar-toggle-btn svg, .sidebar-collapse-btn svg, .level-btn svg { pointer-events: none; }
@@ -2119,7 +2192,21 @@
           </div>
         </div>
 
-        <div class="sidebar-footer" style="display: flex; justify-content: flex-end; align-items: center;">
+        <div class="sidebar-footer" style="display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" class="theme-toggle-btn" id="theme-toggle-sidebar" onclick="toggleTheme()" title="Toggle light / dark mode">
+            <!-- Sun icon -->
+            <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <!-- Moon icon -->
+            <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
           <div id="logout-btn" style="cursor: pointer; color: var(--wf-text-faint); font-family: var(--font-mono); font-size: 11px; padding: 4px 8px; border-radius: var(--radius-sm); transition: color 0.15s;" onmouseover="this.style.color='var(--wf-text)'" onmouseout="this.style.color='var(--wf-text-faint)'">
             Sign Out
           </div>
@@ -2139,6 +2226,20 @@
             <span id="status-text" style="font-family: var(--font-mono); font-size: 11.5px; color: var(--wf-text-dim);">Ready</span>
             <span id="status-searches" style="display:none; font-family: var(--font-mono); font-size: 11px; color: var(--wf-text-faint); margin-left: 6px;"><span id="status-search-count"></span></span>
           </div>
+          <button type="button" class="theme-toggle-btn" id="theme-toggle-top" onclick="toggleTheme()" title="Toggle light / dark mode">
+            <!-- Sun icon (light mode) -->
+            <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <!-- Moon icon (dark mode) -->
+            <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
         </div>
 
         <!-- Hidden Global File Input -->
@@ -3565,9 +3666,41 @@
       if (el2) el2.textContent = yr;
     })();
 
+    /* ── Theme Toggle (Light / Dark) ──────────────────────────────
+       Priority order:
+         1. User's saved preference in localStorage  (persists across visits)
+         2. System prefers-color-scheme media query  (first visit)
+         3. Dark mode as fallback
+    ────────────────────────────────────────────────────────────── */
+    (function initTheme() {
+      var saved  = localStorage.getItem('wf-theme');
+      var sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var isLight = saved ? (saved === 'light') : !sysDark;
+      if (isLight) document.documentElement.classList.add('light');
+    })();
+
+    function toggleTheme() {
+      var isLight = document.documentElement.classList.toggle('light');
+      localStorage.setItem('wf-theme', isLight ? 'light' : 'dark');
+    }
+
+    // Listen for OS-level theme changes when no manual preference is saved
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+        if (!localStorage.getItem('wf-theme')) {
+          if (e.matches) {
+            document.documentElement.classList.remove('light');
+          } else {
+            document.documentElement.classList.add('light');
+          }
+        }
+      });
+    }
+
     // Expose workspace functions to window for inline onclick handlers
     window.setResearchLevel = setResearchLevel;
     window.setProvider = setProvider;
+    window.toggleTheme = toggleTheme;
     window.goHome = goHome;
     window.scrollToBottom = scrollToBottom;
     window.fillQuestion = fillQuestion;
